@@ -6,6 +6,8 @@ import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.radig.smartmendcraft.config.SmartMendingConfig;
+
 public class SmartMendCraft implements ModInitializer {
 
     public static final String MOD_ID = "smartmendcraft";
@@ -13,6 +15,8 @@ public class SmartMendCraft implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        SmartMendingConfig.load();
+        
         LOGGER.info("SmartMendCraft iniciado correctamente.");
     }
 

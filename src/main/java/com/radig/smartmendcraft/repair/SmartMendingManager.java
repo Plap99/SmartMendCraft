@@ -2,6 +2,8 @@ package com.radig.smartmendcraft.repair;
 
 import java.util.Map;
 
+import com.radig.smartmendcraft.config.SmartMendingConfig;
+
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
@@ -26,57 +28,72 @@ public final class SmartMendingManager {
     public static ItemStack findItemToRepair(PlayerEntity player) {
 
         // 1. MANO PRINCIPAL
-        ItemStack mainHand = player.getMainHandStack();
+        if (SmartMendingConfig.repairMainHand()) {
 
-        if (canBeRepaired(mainHand)) {
-            return mainHand;
+            ItemStack mainHand = player.getMainHandStack();
+
+            if (canBeRepaired(mainHand)) {
+                return mainHand;
+            }
         }
 
         // 2. MANO SECUNDARIA
-        ItemStack offHand = player.getOffHandStack();
+        if (SmartMendingConfig.repairOffHand()) {
 
-        if (canBeRepaired(offHand)) {
-            return offHand;
+            ItemStack offHand = player.getOffHandStack();
+
+            if (canBeRepaired(offHand)) {
+                return offHand;
+            }
         }
 
         // 3. ARMADURA
-        EquipmentSlot[] armorSlots = {
-                EquipmentSlot.HEAD,
-                EquipmentSlot.CHEST,
-                EquipmentSlot.LEGS,
-                EquipmentSlot.FEET
-        };
+        if (SmartMendingConfig.repairArmor()) {
 
-        for (EquipmentSlot slot : armorSlots) {
-            ItemStack stack = player.getEquippedStack(slot);
+            EquipmentSlot[] armorSlots = {
+                    EquipmentSlot.HEAD,
+                    EquipmentSlot.CHEST,
+                    EquipmentSlot.LEGS,
+                    EquipmentSlot.FEET
+            };
 
-            if (canBeRepaired(stack)) {
-                return stack;
+            for (EquipmentSlot slot : armorSlots) {
+
+                ItemStack stack = player.getEquippedStack(slot);
+
+                if (canBeRepaired(stack)) {
+                    return stack;
+                }
             }
         }
 
         // 4. INVENTARIO / HOTBAR
-        ItemStack mostDamagedItem = ItemStack.EMPTY;
-        double highestDamagePercentage = -1.0;
+        if (SmartMendingConfig.repairInventory()) {
 
-        for (int slot = 0; slot < player.getInventory().size(); slot++) {
+            ItemStack mostDamagedItem = ItemStack.EMPTY;
+            double highestDamagePercentage = -1.0;
 
-            ItemStack stack = player.getInventory().getStack(slot);
+            for (int slot = 0; slot < player.getInventory().size(); slot++) {
 
-            if (!canBeRepaired(stack)) {
-                continue;
+                ItemStack stack = player.getInventory().getStack(slot);
+
+                if (!canBeRepaired(stack)) {
+                    continue;
+                }
+
+                double damagePercentage =
+                        (double) stack.getDamage() / stack.getMaxDamage();
+
+                if (damagePercentage > highestDamagePercentage) {
+                    highestDamagePercentage = damagePercentage;
+                    mostDamagedItem = stack;
+                }
             }
 
-            double damagePercentage =
-                    (double) stack.getDamage() / stack.getMaxDamage();
-
-            if (damagePercentage > highestDamagePercentage) {
-                highestDamagePercentage = damagePercentage;
-                mostDamagedItem = stack;
-            }
+            return mostDamagedItem;
         }
 
-        return mostDamagedItem;
+        return ItemStack.EMPTY;
     }
 
     /**
