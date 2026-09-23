@@ -195,4 +195,38 @@ public final class SmartMendingConfig {
         instance.repairInventory = value;
         save();
     }
+
+    public static void movePriorityUp(MendingTarget target) {
+        int index = instance.priority.indexOf(target);
+
+        // Ya está arriba o no existe.
+        if (index <= 0) {
+            return;
+        }
+
+        MendingTarget previous =
+                instance.priority.get(index - 1);
+
+        instance.priority.set(index - 1, target);
+        instance.priority.set(index, previous);
+
+        save();
+    }
+
+    public static void movePriorityDown(MendingTarget target) {
+        int index = instance.priority.indexOf(target);
+
+        // No existe o ya está abajo.
+        if (index < 0 || index >= instance.priority.size() - 1) {
+            return;
+        }
+
+        MendingTarget next =
+                instance.priority.get(index + 1);
+
+        instance.priority.set(index + 1, target);
+        instance.priority.set(index, next);
+
+        save();
+    }
 }
