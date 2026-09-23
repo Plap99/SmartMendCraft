@@ -5,9 +5,14 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.radig.smartmendcraft.SmartMendCraft;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -30,32 +35,90 @@ public final class SmartMendingConfig {
     private boolean repairArmor = true;
     private boolean repairInventory = true;
 
+    private List<MendingTarget> priority = createDefaultPriority();
+
     private static SmartMendingConfig instance =
             new SmartMendingConfig();
 
     private SmartMendingConfig() {
     }
 
+    private static List<MendingTarget> createDefaultPriority() {
+        return new ArrayList<>(
+                Arrays.asList(
+                        MendingTarget.MAIN_HAND,
+                        MendingTarget.OFF_HAND,
+                        MendingTarget.ARMOR,
+                        MendingTarget.INVENTORY
+                )
+        );
+    }
+
     public static void load() {
 
-        // Si todavía no existe configuración,
-        // creamos el archivo con los valores predeterminados.
+        /*
+         * Si todavía no existe configuración,
+         * creamos el archivo con los valores predeterminados.
+         */
         if (!Files.exists(CONFIG_PATH)) {
+
             save();
+
             SmartMendCraft.LOGGER.info(
                     "Configuración creada en {}",
                     CONFIG_PATH
             );
+
             return;
         }
 
-        try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
+        try {
 
-            SmartMendingConfig loaded =
-                    GSON.fromJson(reader, SmartMendingConfig.class);
+            /*
+             * Primero comprobamos qué propiedades existen
+             * realmente en el archivo JSON.
+             */
+            boolean priorityExists;
 
-            if (loaded != null) {
-                instance = loaded;
+            try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
+
+                JsonObject json =
+                    new JsonParser()
+                            .parse(reader)
+                            .getAsJsonObject();
+
+                priorityExists = json.has("priority");
+            }
+
+            /*
+             * Después cargamos normalmente la configuración.
+             */
+            try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
+
+                SmartMendingConfig loaded =
+                        GSON.fromJson(reader, SmartMendingConfig.class);
+
+                if (loaded != null) {
+
+                    instance = loaded;
+
+                    /*
+                     * Si el JSON antiguo no tenía priority,
+                     * agregamos el valor predeterminado.
+                     */
+                    if (!priorityExists
+                            || instance.priority == null
+                            || instance.priority.isEmpty()) {
+
+                        instance.priority = createDefaultPriority();
+
+                        save();
+
+                        SmartMendCraft.LOGGER.info(
+                                "Configuración actualizada con prioridades predeterminadas."
+                        );
+                    }
+                }
             }
 
             SmartMendCraft.LOGGER.info(
@@ -63,7 +126,7 @@ public final class SmartMendingConfig {
                     CONFIG_PATH
             );
 
-        } catch (IOException exception) {
+        } catch (Exception exception) {
 
             SmartMendCraft.LOGGER.error(
                     "No se pudo cargar la configuración de SmartMendCraft.",
@@ -107,6 +170,10 @@ public final class SmartMendingConfig {
 
     public static boolean repairInventory() {
         return instance.repairInventory;
+    }
+
+    public static List<MendingTarget> getPriority() {
+        return new ArrayList<>(instance.priority);
     }
 
     public static void setRepairMainHand(boolean value) {
