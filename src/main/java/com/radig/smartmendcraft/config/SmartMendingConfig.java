@@ -37,6 +37,9 @@ public final class SmartMendingConfig {
 
     private List<MendingTarget> priority = createDefaultPriority();
 
+    private InventoryMendingMode inventoryMode =
+        InventoryMendingMode.BALANCE;
+
     private static SmartMendingConfig instance =
             new SmartMendingConfig();
 
@@ -79,6 +82,7 @@ public final class SmartMendingConfig {
              * realmente en el archivo JSON.
              */
             boolean priorityExists;
+            boolean inventoryModeExists;
 
             try (Reader reader = Files.newBufferedReader(CONFIG_PATH)) {
 
@@ -88,6 +92,7 @@ public final class SmartMendingConfig {
                             .getAsJsonObject();
 
                 priorityExists = json.has("priority");
+                inventoryModeExists = json.has("inventoryMode");
             }
 
             /*
@@ -116,6 +121,22 @@ public final class SmartMendingConfig {
 
                         SmartMendCraft.LOGGER.info(
                                 "Configuración actualizada con prioridades predeterminadas."
+                        );
+                    }
+
+                    /*
+                     * Si el JSON antiguo no tenía inventoryMode,
+                     * agregamos el valor predeterminado.
+                     */
+                    if (!inventoryModeExists
+                            || instance.inventoryMode == null) {
+
+                        instance.inventoryMode = InventoryMendingMode.BALANCE;
+
+                        save();
+
+                        SmartMendCraft.LOGGER.info(
+                                "Configuración actualizada con modo de inventario predeterminado."
                         );
                     }
                 }
@@ -227,6 +248,21 @@ public final class SmartMendingConfig {
         instance.priority.set(index + 1, target);
         instance.priority.set(index, next);
 
+        save();
+    }
+
+    public static InventoryMendingMode getInventoryMode() {
+        return instance.inventoryMode;
+    }
+
+    public static void setInventoryMode(
+            InventoryMendingMode mode) {
+
+        if (mode == null) {
+            return;
+        }
+
+        instance.inventoryMode = mode;
         save();
     }
 }

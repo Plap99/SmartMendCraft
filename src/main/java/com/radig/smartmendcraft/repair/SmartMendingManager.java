@@ -2,6 +2,7 @@ package com.radig.smartmendcraft.repair;
 
 import java.util.Map;
 
+import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.SmartMendingConfig;
 
@@ -12,6 +13,13 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 
 public final class SmartMendingManager {
+
+    /*
+     * Objeto que FINISH_ITEM está reparando actualmente.
+     *
+     * No se usa en modo BALANCE.
+     */
+    private static ItemStack currentInventoryTarget = ItemStack.EMPTY;
 
     private SmartMendingManager() {
         // Evita que esta clase pueda instanciarse.
@@ -118,10 +126,32 @@ public final class SmartMendingManager {
     }
 
     /**
-     * Busca en inventario/hotbar el objeto con
-     * mayor porcentaje de daño.
+     * Decide cómo buscar un objeto dentro del inventario
+     * según el modo configurado.
      */
     private static ItemStack findInventoryItemToRepair(
+            PlayerEntity player) {
+
+        if (SmartMendingConfig.getInventoryMode()
+                == InventoryMendingMode.FINISH_ITEM) {
+
+            return findInventoryItemFinishMode(player);
+        }
+
+        /*
+         * Si estamos en BALANCE, olvidamos cualquier objetivo
+         * que pudiera haber quedado seleccionado anteriormente.
+         */
+        currentInventoryTarget = ItemStack.EMPTY;
+
+        return findMostDamagedInventoryItem(player);
+    }
+
+    /**
+     * Modo BALANCE:
+     * devuelve siempre el objeto con mayor porcentaje de daño.
+     */
+    private static ItemStack findMostDamagedInventoryItem(
             PlayerEntity player) {
 
         ItemStack mostDamagedItem = ItemStack.EMPTY;
@@ -150,6 +180,63 @@ public final class SmartMendingManager {
         }
 
         return mostDamagedItem;
+    }
+
+    /**
+     * Modo FINISH_ITEM:
+     *
+     * Mantiene el mismo objeto como objetivo hasta que:
+     * - quede completamente reparado,
+     * - salga del inventario,
+     * - o deje de ser válido.
+     *
+     * Después selecciona otro objeto.
+     */
+    private static ItemStack findInventoryItemFinishMode(
+            PlayerEntity player) {
+
+        if (isCurrentTargetValid(player)) {
+            return currentInventoryTarget;
+        }
+
+        currentInventoryTarget =
+                findMostDamagedInventoryItem(player);
+
+        return currentInventoryTarget;
+    }
+
+    /**
+     * Comprueba que el objetivo actual siga siendo válido
+     * y continúe dentro del inventario del jugador.
+     */
+    private static boolean isCurrentTargetValid(
+            PlayerEntity player) {
+
+        if (currentInventoryTarget == null
+                || currentInventoryTarget.isEmpty()
+                || !canBeRepaired(currentInventoryTarget)) {
+
+            return false;
+        }
+
+        for (int slot = 0;
+             slot < player.getInventory().size();
+             slot++) {
+
+            ItemStack stack =
+                    player.getInventory().getStack(slot);
+
+            /*
+             * Comparamos la referencia.
+             * Queremos encontrar exactamente el mismo ItemStack
+             * que habíamos seleccionado.
+             */
+            if (stack == currentInventoryTarget) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
