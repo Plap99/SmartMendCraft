@@ -108,4 +108,24 @@ public final class SmartMendingConfig {
     public static boolean repairInventory() {
         return instance.repairInventory;
     }
+
+    public static void setRepairMainHand(boolean value) {
+        instance.repairMainHand = value;
+        save();
+    }
+
+    public static void setRepairOffHand(boolean value) {
+        instance.repairOffHand = value;
+        save();
+    }
+
+    public static void setRepairArmor(boolean value) {
+        instance.repairArmor = value;
+        save();
+    }
+
+    public static void setRepairInventory(boolean value) {
+        instance.repairInventory = value;
+        save();
+    }
 }

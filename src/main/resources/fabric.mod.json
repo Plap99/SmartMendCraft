@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"com.radig.smartmendcraft.SmartMendCraft"
+		],
+		"client": [
+			"com.radig.smartmendcraft.client.SmartMendCraftClient"
 		]
 	},
 	"mixins": [
