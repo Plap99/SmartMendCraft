@@ -1,14 +1,14 @@
 {
-	"required": true,
-	"package": "com.radig.smartmendcraft.mixin",
-	"compatibilityLevel": "JAVA_16",
-	"mixins": [
-		"ExampleMixin"
+    "required": true,
+    "package": "com.radig.smartmendcraft.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+		"ExperienceOrbEntityMixin"
 	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "overwrites": {
+        "requireAnnotations": true
+    }
 }
