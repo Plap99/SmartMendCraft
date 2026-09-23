@@ -17,13 +17,11 @@ public final class SmartMendingManager {
     /**
      * Busca el siguiente objeto que SmartMendCraft debería reparar.
      *
-     * Prioridad inicial:
+     * Prioridad:
      * 1. Mano principal
      * 2. Mano secundaria
      * 3. Armadura
-     *
-     * Por ahora mantenemos el mismo alcance que Mending vanilla 1.17.1:
-     * solamente equipo equipado.
+     * 4. Inventario / hotbar
      */
     public static ItemStack findItemToRepair(PlayerEntity player) {
 
@@ -57,7 +55,28 @@ public final class SmartMendingManager {
             }
         }
 
-        return ItemStack.EMPTY;
+        // 4. INVENTARIO / HOTBAR
+        ItemStack mostDamagedItem = ItemStack.EMPTY;
+        double highestDamagePercentage = -1.0;
+
+        for (int slot = 0; slot < player.getInventory().size(); slot++) {
+
+            ItemStack stack = player.getInventory().getStack(slot);
+
+            if (!canBeRepaired(stack)) {
+                continue;
+            }
+
+            double damagePercentage =
+                    (double) stack.getDamage() / stack.getMaxDamage();
+
+            if (damagePercentage > highestDamagePercentage) {
+                highestDamagePercentage = damagePercentage;
+                mostDamagedItem = stack;
+            }
+        }
+
+        return mostDamagedItem;
     }
 
     /**
