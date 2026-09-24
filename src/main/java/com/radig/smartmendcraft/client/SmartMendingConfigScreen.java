@@ -11,6 +11,8 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 
+import com.radig.smartmendcraft.config.InventoryMendingMode;
+
 public class SmartMendingConfigScreen extends Screen {
 
     private final Screen parent;
@@ -103,12 +105,29 @@ public class SmartMendingConfigScreen extends Screen {
         }
 
         /*
+        * Modo de reparación del inventario.
+        */
+        this.addDrawableChild(
+                new ButtonWidget(
+                        centerX - 100,
+                        startY + 120,
+                        200,
+                        20,
+                        getInventoryModeText(),
+                        button -> {
+                            toggleInventoryMode();
+                            refreshScreen();
+                        }
+                )
+        );
+
+        /*
          * Botón Listo.
          */
         this.addDrawableChild(
                 new ButtonWidget(
                         centerX - 50,
-                        startY + 120,
+                        startY + 170,
                         100,
                         20,
                         new LiteralText("Listo"),
@@ -192,6 +211,32 @@ public class SmartMendingConfigScreen extends Screen {
         return enabled ? "ON" : "OFF";
     }
 
+    private void toggleInventoryMode() {
+        if (SmartMendingConfig.getInventoryMode()
+                == InventoryMendingMode.BALANCE) {
+
+            SmartMendingConfig.setInventoryMode(
+                    InventoryMendingMode.FINISH_ITEM
+            );
+
+        } else {
+
+            SmartMendingConfig.setInventoryMode(
+                    InventoryMendingMode.BALANCE
+            );
+        }
+    }
+
+    private Text getInventoryModeText() {
+        if (SmartMendingConfig.getInventoryMode()
+                == InventoryMendingMode.BALANCE) {
+
+            return new LiteralText("Equilibrar reparación");
+        }
+
+        return new LiteralText("Reparar uno por completo");
+    }
+
     /**
      * Reconstruye la pantalla para reflejar inmediatamente
      * los cambios de orden o estado.
@@ -203,6 +248,20 @@ public class SmartMendingConfigScreen extends Screen {
                     new SmartMendingConfigScreen(parent)
             );
         }
+    }
+
+    private Text getInventoryModeDescription() {
+        if (SmartMendingConfig.getInventoryMode()
+                == InventoryMendingMode.BALANCE) {
+
+            return new LiteralText(
+                    "Prioriza el objeto con mayor porcentaje de daño."
+            );
+        }
+
+        return new LiteralText(
+                "Termina un objeto antes de continuar con otro."
+        );
     }
 
     @Override
@@ -230,6 +289,24 @@ public class SmartMendingConfigScreen extends Screen {
                 this.width / 2,
                 35,
                 0xAAAAAA
+        );
+
+        drawCenteredText(
+                matrices,
+                this.textRenderer,
+                new LiteralText("Modo de reparación del inventario"),
+                this.width / 2,
+                155,
+                0xAAAAAA
+        );
+
+        drawCenteredText(
+                matrices,
+                this.textRenderer,
+                getInventoryModeDescription(),
+                this.width / 2,
+                190,
+                0x888888
         );
 
         super.render(matrices, mouseX, mouseY, delta);
