@@ -1,5 +1,6 @@
 package com.radig.smartmendcraft.mixin;
 
+import com.radig.smartmendcraft.repair.MendingRepairEvents;
 import com.radig.smartmendcraft.repair.SmartMendingManager;
 
 import net.minecraft.entity.ExperienceOrbEntity;
@@ -59,6 +60,12 @@ public abstract class ExperienceOrbEntityMixin {
             );
 
             stack.setDamage(damage - repairAmount);
+
+            MendingRepairEvents.notifyItemRepaired(
+                    player,
+                    stack,
+                    repairAmount
+            );
 
             /*
              * Calculamos cuánta XP consumió la reparación.

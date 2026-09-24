@@ -2,16 +2,18 @@ package com.radig.smartmendcraft.client;
 
 import java.util.List;
 
+import com.radig.smartmendcraft.client.config.HudPosition;
+import com.radig.smartmendcraft.client.config.SmartMendingClientConfig;
+import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
-import com.radig.smartmendcraft.config.SmartMendingConfig;
+import com.radig.smartmendcraft.config.PlayerMendingConfig;
+import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-
-import com.radig.smartmendcraft.config.InventoryMendingMode;
 
 public class SmartMendingConfigScreen extends Screen {
 
@@ -20,6 +22,29 @@ public class SmartMendingConfigScreen extends Screen {
     public SmartMendingConfigScreen(Screen parent) {
         super(new LiteralText("Smart Mend Craft"));
         this.parent = parent;
+    }
+
+    /**
+     * Obtiene la configuración personal del jugador local.
+     */
+    private PlayerMendingConfig getConfig() {
+
+        if (this.client == null
+                || this.client.player == null) {
+
+            return null;
+        }
+
+        return PlayerMendingConfigs.get(
+                this.client.player
+        );
+    }
+
+    /**
+     * Indica si debemos utilizar el diseño compacto.
+     */
+    private boolean isCompact() {
+        return this.width < 600;
     }
 
     @Override
@@ -31,32 +56,114 @@ public class SmartMendingConfigScreen extends Screen {
 
     private void createButtons() {
 
-        int centerX = this.width / 2;
-        int startY = 50;
-        int rowSpacing = 24;
+        PlayerMendingConfig config =
+                getConfig();
+
+        if (config == null) {
+            return;
+        }
+
+        boolean compact =
+                isCompact();
+
+        int centerX =
+                this.width / 2;
+
+        /*
+         * -------------------------------------------------
+         * MEDIDAS RESPONSIVE
+         * -------------------------------------------------
+         *
+         * En ventana pequeña reducimos:
+         *
+         * - separación entre columnas
+         * - ancho de botones
+         * - botones de flechas
+         * - separación vertical
+         */
+        int columnOffset =
+                compact ? 88 : 115;
+
+        int leftCenterX =
+                centerX - columnOffset;
+
+        int rightCenterX =
+                centerX + columnOffset;
+
+        int startY =
+                compact ? 60 : 72;
+
+        int rowSpacing =
+                compact ? 22 : 24;
+
+        int categoryWidth =
+                compact ? 112 : 145;
+
+        int arrowWidth =
+                compact ? 18 : 22;
+
+        int rightButtonWidth =
+                compact ? 160 : 200;
+
+        /*
+         * -------------------------------------------------
+         * COLUMNA IZQUIERDA
+         * PRIORIDAD DE REPARACIÓN
+         * -------------------------------------------------
+         */
 
         List<MendingTarget> priority =
-                SmartMendingConfig.getPriority();
+                config.getPriority();
 
-        for (int index = 0; index < priority.size(); index++) {
+        /*
+         * Ancho total aproximado de la fila izquierda:
+         *
+         * categoría + separación + ↑ + separación + ↓
+         */
+        int leftRowWidth =
+                categoryWidth
+                        + 4
+                        + arrowWidth
+                        + 4
+                        + arrowWidth;
 
-            MendingTarget target = priority.get(index);
+        int leftStartX =
+                leftCenterX
+                        - (leftRowWidth / 2);
 
-            int y = startY + (index * rowSpacing);
+        for (int index = 0;
+                index < priority.size();
+                index++) {
+
+            MendingTarget target =
+                    priority.get(index);
+
+            int y =
+                    startY
+                            + (index * rowSpacing);
 
             /*
-             * Botón principal:
-             * activa/desactiva la categoría.
+             * Botón ON/OFF de la categoría.
              */
             this.addDrawableChild(
                     new ButtonWidget(
-                            centerX - 100,
+                            leftStartX,
                             y,
-                            140,
+                            categoryWidth,
                             20,
-                            getTargetText(target),
+                            getTargetText(
+                                    target,
+                                    config,
+                                    compact
+                            ),
                             button -> {
-                                toggleTarget(target);
+
+                                toggleTarget(
+                                        target,
+                                        config
+                                );
+
+                                sendConfig(config);
                                 refreshScreen();
                             }
                     )
@@ -65,35 +172,58 @@ public class SmartMendingConfigScreen extends Screen {
             /*
              * Subir prioridad.
              */
+            int upX =
+                    leftStartX
+                            + categoryWidth
+                            + 4;
+
             ButtonWidget upButton =
                     new ButtonWidget(
-                            centerX + 44,
+                            upX,
                             y,
-                            24,
+                            arrowWidth,
                             20,
                             new LiteralText("↑"),
                             button -> {
-                                SmartMendingConfig.movePriorityUp(target);
+
+                                config.movePriorityUp(
+                                        target
+                                );
+
+                                sendConfig(config);
                                 refreshScreen();
                             }
                     );
 
-            upButton.active = index > 0;
+            upButton.active =
+                    index > 0;
 
-            this.addDrawableChild(upButton);
+            this.addDrawableChild(
+                    upButton
+            );
 
             /*
              * Bajar prioridad.
              */
+            int downX =
+                    upX
+                            + arrowWidth
+                            + 4;
+
             ButtonWidget downButton =
                     new ButtonWidget(
-                            centerX + 72,
+                            downX,
                             y,
-                            24,
+                            arrowWidth,
                             20,
                             new LiteralText("↓"),
                             button -> {
-                                SmartMendingConfig.movePriorityDown(target);
+
+                                config.movePriorityDown(
+                                        target
+                                );
+
+                                sendConfig(config);
                                 refreshScreen();
                             }
                     );
@@ -101,33 +231,111 @@ public class SmartMendingConfigScreen extends Screen {
             downButton.active =
                     index < priority.size() - 1;
 
-            this.addDrawableChild(downButton);
+            this.addDrawableChild(
+                    downButton
+            );
         }
 
         /*
-        * Modo de reparación del inventario.
-        */
+         * -------------------------------------------------
+         * COLUMNA DERECHA
+         * MODO DEL INVENTARIO
+         * -------------------------------------------------
+         */
+
+        int rightButtonX =
+                rightCenterX
+                        - (rightButtonWidth / 2);
+
         this.addDrawableChild(
                 new ButtonWidget(
-                        centerX - 100,
-                        startY + 120,
-                        200,
+                        rightButtonX,
+                        startY,
+                        rightButtonWidth,
                         20,
-                        getInventoryModeText(),
+                        getInventoryModeText(config),
                         button -> {
-                            toggleInventoryMode();
+
+                            toggleInventoryMode(config);
+
+                            sendConfig(config);
                             refreshScreen();
                         }
                 )
         );
 
         /*
-         * Botón Listo.
+         * -------------------------------------------------
+         * COLUMNA DERECHA
+         * NOTIFICACIÓN
+         * -------------------------------------------------
          */
+
+        int hudStartY =
+                compact
+                        ? startY + 52
+                        : startY + 72;
+
+        this.addDrawableChild(
+                new ButtonWidget(
+                        rightButtonX,
+                        hudStartY,
+                        rightButtonWidth,
+                        20,
+                        getHudEnabledText(),
+                        button -> {
+
+                            SmartMendingClientConfig
+                                    .toggleHud();
+
+                            refreshScreen();
+                        }
+                )
+        );
+
+        this.addDrawableChild(
+                new ButtonWidget(
+                        rightButtonX,
+                        hudStartY + 24,
+                        rightButtonWidth,
+                        20,
+                        getHudPositionText(
+                                compact
+                        ),
+                        button -> {
+
+                            SmartMendingClientConfig
+                                    .nextHudPosition();
+
+                            refreshScreen();
+                        }
+                )
+        );
+
+        /*
+         * -------------------------------------------------
+         * BOTÓN LISTO
+         * -------------------------------------------------
+         */
+
+        int leftBottom =
+                startY
+                        + (priority.size()
+                        * rowSpacing);
+
+        int rightBottom =
+                hudStartY + 44;
+
+        int doneY =
+                Math.max(
+                        leftBottom,
+                        rightBottom
+                ) + (compact ? 10 : 18);
+
         this.addDrawableChild(
                 new ButtonWidget(
                         centerX - 50,
-                        startY + 170,
+                        doneY,
                         100,
                         20,
                         new LiteralText("Listo"),
@@ -136,122 +344,147 @@ public class SmartMendingConfigScreen extends Screen {
         );
     }
 
-    private void toggleTarget(MendingTarget target) {
+    private void toggleTarget(
+            MendingTarget target,
+            PlayerMendingConfig config) {
 
         switch (target) {
 
             case MAIN_HAND:
-                SmartMendingConfig.setRepairMainHand(
-                        !SmartMendingConfig.repairMainHand()
+
+                config.setRepairMainHand(
+                        !config.isRepairMainHand()
                 );
+
                 break;
 
             case OFF_HAND:
-                SmartMendingConfig.setRepairOffHand(
-                        !SmartMendingConfig.repairOffHand()
+
+                config.setRepairOffHand(
+                        !config.isRepairOffHand()
                 );
+
                 break;
 
             case ARMOR:
-                SmartMendingConfig.setRepairArmor(
-                        !SmartMendingConfig.repairArmor()
+
+                config.setRepairArmor(
+                        !config.isRepairArmor()
                 );
+
                 break;
 
             case INVENTORY:
-                SmartMendingConfig.setRepairInventory(
-                        !SmartMendingConfig.repairInventory()
+
+                config.setRepairInventory(
+                        !config.isRepairInventory()
                 );
+
                 break;
         }
     }
 
-    private Text getTargetText(MendingTarget target) {
+    private Text getTargetText(
+            MendingTarget target,
+            PlayerMendingConfig config,
+            boolean compact) {
 
         switch (target) {
 
             case MAIN_HAND:
+
                 return new LiteralText(
-                        "Mano principal: "
+                        (compact
+                                ? "Principal: "
+                                : "Mano principal: ")
                                 + getOnOff(
-                                        SmartMendingConfig.repairMainHand()
+                                        config.isRepairMainHand()
                                 )
                 );
 
             case OFF_HAND:
+
                 return new LiteralText(
-                        "Mano secundaria: "
+                        (compact
+                                ? "Secundaria: "
+                                : "Mano secundaria: ")
                                 + getOnOff(
-                                        SmartMendingConfig.repairOffHand()
+                                        config.isRepairOffHand()
                                 )
                 );
 
             case ARMOR:
+
                 return new LiteralText(
                         "Armadura: "
                                 + getOnOff(
-                                        SmartMendingConfig.repairArmor()
+                                        config.isRepairArmor()
                                 )
                 );
 
             case INVENTORY:
+
                 return new LiteralText(
                         "Inventario: "
                                 + getOnOff(
-                                        SmartMendingConfig.repairInventory()
+                                        config.isRepairInventory()
                                 )
                 );
 
             default:
-                return new LiteralText(target.name());
+
+                return new LiteralText(
+                        target.name()
+                );
         }
     }
 
-    private String getOnOff(boolean enabled) {
-        return enabled ? "ON" : "OFF";
+    private String getOnOff(
+            boolean enabled) {
+
+        return enabled
+                ? "ON"
+                : "OFF";
     }
 
-    private void toggleInventoryMode() {
-        if (SmartMendingConfig.getInventoryMode()
+    private void toggleInventoryMode(
+            PlayerMendingConfig config) {
+
+        if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            SmartMendingConfig.setInventoryMode(
+            config.setInventoryMode(
                     InventoryMendingMode.FINISH_ITEM
             );
 
         } else {
 
-            SmartMendingConfig.setInventoryMode(
+            config.setInventoryMode(
                     InventoryMendingMode.BALANCE
             );
         }
     }
 
-    private Text getInventoryModeText() {
-        if (SmartMendingConfig.getInventoryMode()
+    private Text getInventoryModeText(
+            PlayerMendingConfig config) {
+
+        if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return new LiteralText("Equilibrar reparación");
-        }
-
-        return new LiteralText("Reparar uno por completo");
-    }
-
-    /**
-     * Reconstruye la pantalla para reflejar inmediatamente
-     * los cambios de orden o estado.
-     */
-    private void refreshScreen() {
-
-        if (this.client != null) {
-            this.client.setScreen(
-                    new SmartMendingConfigScreen(parent)
+            return new LiteralText(
+                    "Equilibrar reparación"
             );
         }
+
+        return new LiteralText(
+                "Reparar uno por completo"
+        );
     }
 
-    private Text getInventoryModeDescription() {
-        if (SmartMendingConfig.getInventoryMode()
+    private Text getInventoryModeDescription(
+            PlayerMendingConfig config) {
+
+        if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
             return new LiteralText(
@@ -264,6 +497,92 @@ public class SmartMendingConfigScreen extends Screen {
         );
     }
 
+    private Text getHudEnabledText() {
+
+        return new LiteralText(
+                "Notificación: "
+                        + getOnOff(
+                                SmartMendingClientConfig
+                                        .isShowHud()
+                        )
+        );
+    }
+
+    private Text getHudPositionText(
+            boolean compact) {
+
+        HudPosition position =
+                SmartMendingClientConfig
+                        .getHudPosition();
+
+        /*
+         * En ventana pequeña usamos nombres
+         * ligeramente más cortos.
+         */
+        if (compact) {
+
+            switch (position) {
+
+                case TOP_LEFT:
+                    return new LiteralText(
+                            "Posición: Arriba izq."
+                    );
+
+                case TOP_CENTER:
+                    return new LiteralText(
+                            "Posición: Arriba centro"
+                    );
+
+                case TOP_RIGHT:
+                    return new LiteralText(
+                            "Posición: Arriba der."
+                    );
+
+                case BOTTOM_LEFT:
+                    return new LiteralText(
+                            "Posición: Abajo izq."
+                    );
+
+                case BOTTOM_RIGHT:
+                    return new LiteralText(
+                            "Posición: Abajo der."
+                    );
+            }
+        }
+
+        return new LiteralText(
+                "Posición: "
+                        + position.getDisplayName()
+        );
+    }
+
+    /**
+     * Envía al servidor la configuración personal
+     * después de realizar cualquier cambio.
+     */
+    private void sendConfig(
+            PlayerMendingConfig config) {
+
+        SmartMendingClientNetworking
+                .sendConfigUpdate(config);
+    }
+
+    /**
+     * Reconstruye la pantalla para reflejar
+     * inmediatamente los cambios.
+     */
+    private void refreshScreen() {
+
+        if (this.client != null) {
+
+            this.client.setScreen(
+                    new SmartMendingConfigScreen(
+                            parent
+                    )
+            );
+        }
+    }
+
     @Override
     public void render(
             MatrixStack matrices,
@@ -271,52 +590,132 @@ public class SmartMendingConfigScreen extends Screen {
             int mouseY,
             float delta) {
 
-        this.renderBackground(matrices);
+        this.renderBackground(
+                matrices
+        );
+
+        boolean compact =
+                isCompact();
+
+        int centerX =
+                this.width / 2;
+
+        int columnOffset =
+                compact ? 88 : 115;
+
+        int leftCenterX =
+                centerX - columnOffset;
+
+        int rightCenterX =
+                centerX + columnOffset;
+
+        int startY =
+                compact ? 60 : 72;
+
+        /*
+         * -------------------------------------------------
+         * TÍTULO PRINCIPAL
+         * -------------------------------------------------
+         */
 
         drawCenteredText(
                 matrices,
                 this.textRenderer,
                 this.title,
-                this.width / 2,
-                20,
+                centerX,
+                compact ? 10 : 20,
                 0xFFFFFF
         );
 
+        /*
+         * -------------------------------------------------
+         * COLUMNA IZQUIERDA
+         * -------------------------------------------------
+         */
+
         drawCenteredText(
                 matrices,
                 this.textRenderer,
-                new LiteralText("Prioridad de reparación"),
-                this.width / 2,
-                35,
+                new LiteralText(
+                        "Prioridad de reparación"
+                ),
+                leftCenterX,
+                startY - 20,
                 0xAAAAAA
         );
 
-        drawCenteredText(
-                matrices,
-                this.textRenderer,
-                new LiteralText("Modo de reparación del inventario"),
-                this.width / 2,
-                155,
-                0xAAAAAA
-        );
+        /*
+         * -------------------------------------------------
+         * COLUMNA DERECHA
+         * -------------------------------------------------
+         */
 
-        drawCenteredText(
-                matrices,
-                this.textRenderer,
-                getInventoryModeDescription(),
-                this.width / 2,
-                190,
-                0x888888
-        );
+        PlayerMendingConfig config =
+                getConfig();
 
-        super.render(matrices, mouseX, mouseY, delta);
+        if (config != null) {
+
+            drawCenteredText(
+                    matrices,
+                    this.textRenderer,
+                    new LiteralText(
+                            "Modo de inventario"
+                    ),
+                    rightCenterX,
+                    startY - 20,
+                    0xAAAAAA
+            );
+
+            /*
+             * La descripción larga solamente aparece
+             * cuando hay suficiente espacio horizontal.
+             */
+            if (!compact) {
+
+                drawCenteredText(
+                        matrices,
+                        this.textRenderer,
+                        getInventoryModeDescription(
+                                config
+                        ),
+                        rightCenterX,
+                        startY + 25,
+                        0x888888
+                );
+            }
+
+            int hudStartY =
+                    compact
+                            ? startY + 52
+                            : startY + 72;
+
+            drawCenteredText(
+                    matrices,
+                    this.textRenderer,
+                    new LiteralText(
+                            "Notificación de reparación"
+                    ),
+                    rightCenterX,
+                    hudStartY - 18,
+                    0xAAAAAA
+            );
+        }
+
+        super.render(
+                matrices,
+                mouseX,
+                mouseY,
+                delta
+        );
     }
 
     @Override
     public void onClose() {
 
         if (this.client != null) {
-            this.client.setScreen(parent);
+            this.client.setScreen(
+                    parent
+            );
         }
     }
 }

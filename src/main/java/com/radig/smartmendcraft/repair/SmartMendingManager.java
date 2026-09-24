@@ -1,10 +1,13 @@
 package com.radig.smartmendcraft.repair;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
-import com.radig.smartmendcraft.config.SmartMendingConfig;
+import com.radig.smartmendcraft.config.PlayerMendingConfig;
+import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
@@ -19,7 +22,8 @@ public final class SmartMendingManager {
      *
      * No se usa en modo BALANCE.
      */
-    private static ItemStack currentInventoryTarget = ItemStack.EMPTY;
+    private static final Map<UUID, ItemStack> CURRENT_INVENTORY_TARGETS =
+        new HashMap<>();
 
     private SmartMendingManager() {
         // Evita que esta clase pueda instanciarse.
@@ -30,10 +34,17 @@ public final class SmartMendingManager {
      * siguiendo el orden configurado por el jugador.
      */
     public static ItemStack findItemToRepair(PlayerEntity player) {
+        PlayerMendingConfig config =
+                PlayerMendingConfigs.get(player);
 
-        for (MendingTarget target : SmartMendingConfig.getPriority()) {
+        for (MendingTarget target : config.getPriority()) {
 
-            ItemStack stack = findItemForTarget(player, target);
+            ItemStack stack =
+                    findItemForTarget(
+                            player,
+                            target,
+                            config
+                    );
 
             if (!stack.isEmpty()) {
                 return stack;
@@ -48,18 +59,20 @@ public final class SmartMendingManager {
      */
     private static ItemStack findItemForTarget(
             PlayerEntity player,
-            MendingTarget target) {
+            MendingTarget target,
+            PlayerMendingConfig config) {
 
         switch (target) {
 
             case MAIN_HAND:
 
-                if (SmartMendingConfig.repairMainHand()) {
+                if (config.isRepairMainHand()) {
 
-                    ItemStack mainHand = player.getMainHandStack();
+                    ItemStack stack =
+                            player.getMainHandStack();
 
-                    if (canBeRepaired(mainHand)) {
-                        return mainHand;
+                    if (canBeRepaired(stack)) {
+                        return stack;
                     }
                 }
 
@@ -67,12 +80,13 @@ public final class SmartMendingManager {
 
             case OFF_HAND:
 
-                if (SmartMendingConfig.repairOffHand()) {
+                if (config.isRepairOffHand()) {
 
-                    ItemStack offHand = player.getOffHandStack();
+                    ItemStack stack =
+                            player.getOffHandStack();
 
-                    if (canBeRepaired(offHand)) {
-                        return offHand;
+                    if (canBeRepaired(stack)) {
+                        return stack;
                     }
                 }
 
@@ -80,7 +94,7 @@ public final class SmartMendingManager {
 
             case ARMOR:
 
-                if (SmartMendingConfig.repairArmor()) {
+                if (config.isRepairArmor()) {
                     return findArmorToRepair(player);
                 }
 
@@ -88,8 +102,11 @@ public final class SmartMendingManager {
 
             case INVENTORY:
 
-                if (SmartMendingConfig.repairInventory()) {
-                    return findInventoryItemToRepair(player);
+                if (config.isRepairInventory()) {
+                    return findInventoryItemToRepair(
+                            player,
+                            config
+                    );
                 }
 
                 break;
@@ -130,19 +147,18 @@ public final class SmartMendingManager {
      * según el modo configurado.
      */
     private static ItemStack findInventoryItemToRepair(
-            PlayerEntity player) {
+            PlayerEntity player,
+            PlayerMendingConfig config) {
 
-        if (SmartMendingConfig.getInventoryMode()
+        UUID playerId = player.getUuid();
+
+        if (config.getInventoryMode()
                 == InventoryMendingMode.FINISH_ITEM) {
 
             return findInventoryItemFinishMode(player);
         }
 
-        /*
-         * Si estamos en BALANCE, olvidamos cualquier objetivo
-         * que pudiera haber quedado seleccionado anteriormente.
-         */
-        currentInventoryTarget = ItemStack.EMPTY;
+        CURRENT_INVENTORY_TARGETS.remove(playerId);
 
         return findMostDamagedInventoryItem(player);
     }
@@ -193,14 +209,28 @@ public final class SmartMendingManager {
     private static ItemStack findInventoryItemFinishMode(
             PlayerEntity player) {
 
-        if (isCurrentTargetValid(player)) {
-            return currentInventoryTarget;
+        UUID playerId = player.getUuid();
+
+        ItemStack currentTarget =
+                CURRENT_INVENTORY_TARGETS.get(playerId);
+
+        if (isCurrentTargetValid(player, currentTarget)) {
+            return currentTarget;
         }
 
-        currentInventoryTarget =
+        ItemStack newTarget =
                 findMostDamagedInventoryItem(player);
 
-        return currentInventoryTarget;
+        if (newTarget.isEmpty()) {
+            CURRENT_INVENTORY_TARGETS.remove(playerId);
+        } else {
+            CURRENT_INVENTORY_TARGETS.put(
+                    playerId,
+                    newTarget
+            );
+        }
+
+        return newTarget;
     }
 
     /**
@@ -208,26 +238,26 @@ public final class SmartMendingManager {
      * y continúe dentro del inventario del jugador.
      */
     private static boolean isCurrentTargetValid(
-            PlayerEntity player) {
+            PlayerEntity player,
+            ItemStack currentTarget) {
 
-        if (currentInventoryTarget == null
-                || currentInventoryTarget.isEmpty()
-                || !canBeRepaired(currentInventoryTarget)) {
+        if (currentTarget == null
+                || currentTarget.isEmpty()
+                || !canBeRepaired(currentTarget)) {
 
             return false;
         }
 
+        /*
+        * Solo buscamos dentro de los 36 slots reales
+        * del inventario/hotbar.
+        */
         for (int slot = 0; slot < 36; slot++) {
 
             ItemStack stack =
                     player.getInventory().getStack(slot);
 
-            /*
-             * Comparamos la referencia.
-             * Queremos encontrar exactamente el mismo ItemStack
-             * que habíamos seleccionado.
-             */
-            if (stack == currentInventoryTarget) {
+            if (stack == currentTarget) {
                 return true;
             }
         }
