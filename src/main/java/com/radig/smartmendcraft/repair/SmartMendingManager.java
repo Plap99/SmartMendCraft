@@ -157,9 +157,7 @@ public final class SmartMendingManager {
         ItemStack mostDamagedItem = ItemStack.EMPTY;
         double highestDamagePercentage = -1.0;
 
-        for (int slot = 0;
-             slot < player.getInventory().size();
-             slot++) {
+        for (int slot = 0; slot < 36; slot++) {
 
             ItemStack stack =
                     player.getInventory().getStack(slot);
@@ -219,9 +217,7 @@ public final class SmartMendingManager {
             return false;
         }
 
-        for (int slot = 0;
-             slot < player.getInventory().size();
-             slot++) {
+        for (int slot = 0; slot < 36; slot++) {
 
             ItemStack stack =
                     player.getInventory().getStack(slot);
