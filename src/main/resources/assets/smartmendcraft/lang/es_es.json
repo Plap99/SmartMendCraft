@@ -1,0 +1,41 @@
+{
+  "category.smartmendcraft": "Smart Mend Craft",
+  "key.smartmendcraft.open_config": "Abrir configuración",
+
+  "screen.smartmendcraft.title": "Smart Mend Craft",
+  "screen.smartmendcraft.repair_priority": "Prioridad de reparación",
+  "screen.smartmendcraft.inventory_mode": "Modo de inventario",
+  "screen.smartmendcraft.repair_notification": "Notificación de reparación",
+
+  "screen.smartmendcraft.main_hand": "Mano principal: %s",
+  "screen.smartmendcraft.main_hand_short": "Principal: %s",
+  "screen.smartmendcraft.off_hand": "Mano secundaria: %s",
+  "screen.smartmendcraft.off_hand_short": "Secundaria: %s",
+  "screen.smartmendcraft.armor": "Armadura: %s",
+  "screen.smartmendcraft.inventory": "Inventario: %s",
+
+  "screen.smartmendcraft.on": "ON",
+  "screen.smartmendcraft.off": "OFF",
+
+  "screen.smartmendcraft.mode.balance": "Equilibrar reparación",
+  "screen.smartmendcraft.mode.finish": "Reparar uno por completo",
+  "screen.smartmendcraft.mode.balance.description": "Prioriza el objeto con mayor porcentaje de daño.",
+  "screen.smartmendcraft.mode.finish.description": "Termina un objeto antes de continuar con otro.",
+
+  "screen.smartmendcraft.notification": "Notificación: %s",
+
+  "screen.smartmendcraft.position": "Posición: %s",
+  "screen.smartmendcraft.position.top_left": "Superior izquierda",
+  "screen.smartmendcraft.position.top_center": "Superior centro",
+  "screen.smartmendcraft.position.top_right": "Superior derecha",
+  "screen.smartmendcraft.position.bottom_left": "Inferior izquierda",
+  "screen.smartmendcraft.position.bottom_right": "Inferior derecha",
+
+  "screen.smartmendcraft.position.top_left_short": "Arriba izq.",
+  "screen.smartmendcraft.position.top_center_short": "Arriba centro",
+  "screen.smartmendcraft.position.top_right_short": "Arriba der.",
+  "screen.smartmendcraft.position.bottom_left_short": "Abajo izq.",
+  "screen.smartmendcraft.position.bottom_right_short": "Abajo der.",
+
+  "screen.smartmendcraft.done": "Listo"
+}

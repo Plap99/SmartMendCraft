@@ -14,13 +14,20 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
 
 public class SmartMendingConfigScreen extends Screen {
 
     private final Screen parent;
 
     public SmartMendingConfigScreen(Screen parent) {
-        super(new LiteralText("Smart Mend Craft"));
+
+        super(
+                new TranslatableText(
+                        "screen.smartmendcraft.title"
+                )
+        );
+
         this.parent = parent;
     }
 
@@ -44,11 +51,13 @@ public class SmartMendingConfigScreen extends Screen {
      * Indica si debemos utilizar el diseño compacto.
      */
     private boolean isCompact() {
+
         return this.width < 600;
     }
 
     @Override
     protected void init() {
+
         super.init();
 
         createButtons();
@@ -338,7 +347,9 @@ public class SmartMendingConfigScreen extends Screen {
                         doneY,
                         100,
                         20,
-                        new LiteralText("Listo"),
+                        new TranslatableText(
+                                "screen.smartmendcraft.done"
+                        ),
                         button -> onClose()
                 )
         );
@@ -393,42 +404,42 @@ public class SmartMendingConfigScreen extends Screen {
 
             case MAIN_HAND:
 
-                return new LiteralText(
-                        (compact
-                                ? "Principal: "
-                                : "Mano principal: ")
-                                + getOnOff(
-                                        config.isRepairMainHand()
-                                )
+                return new TranslatableText(
+                        compact
+                                ? "screen.smartmendcraft.main_hand_short"
+                                : "screen.smartmendcraft.main_hand",
+                        getOnOff(
+                                config.isRepairMainHand()
+                        )
                 );
 
             case OFF_HAND:
 
-                return new LiteralText(
-                        (compact
-                                ? "Secundaria: "
-                                : "Mano secundaria: ")
-                                + getOnOff(
-                                        config.isRepairOffHand()
-                                )
+                return new TranslatableText(
+                        compact
+                                ? "screen.smartmendcraft.off_hand_short"
+                                : "screen.smartmendcraft.off_hand",
+                        getOnOff(
+                                config.isRepairOffHand()
+                        )
                 );
 
             case ARMOR:
 
-                return new LiteralText(
-                        "Armadura: "
-                                + getOnOff(
-                                        config.isRepairArmor()
-                                )
+                return new TranslatableText(
+                        "screen.smartmendcraft.armor",
+                        getOnOff(
+                                config.isRepairArmor()
+                        )
                 );
 
             case INVENTORY:
 
-                return new LiteralText(
-                        "Inventario: "
-                                + getOnOff(
-                                        config.isRepairInventory()
-                                )
+                return new TranslatableText(
+                        "screen.smartmendcraft.inventory",
+                        getOnOff(
+                                config.isRepairInventory()
+                        )
                 );
 
             default:
@@ -439,12 +450,14 @@ public class SmartMendingConfigScreen extends Screen {
         }
     }
 
-    private String getOnOff(
+    private Text getOnOff(
             boolean enabled) {
 
-        return enabled
-                ? "ON"
-                : "OFF";
+        return new TranslatableText(
+                enabled
+                        ? "screen.smartmendcraft.on"
+                        : "screen.smartmendcraft.off"
+        );
     }
 
     private void toggleInventoryMode(
@@ -471,13 +484,13 @@ public class SmartMendingConfigScreen extends Screen {
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return new LiteralText(
-                    "Equilibrar reparación"
+            return new TranslatableText(
+                    "screen.smartmendcraft.mode.balance"
             );
         }
 
-        return new LiteralText(
-                "Reparar uno por completo"
+        return new TranslatableText(
+                "screen.smartmendcraft.mode.finish"
         );
     }
 
@@ -487,24 +500,24 @@ public class SmartMendingConfigScreen extends Screen {
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return new LiteralText(
-                    "Prioriza el objeto con mayor porcentaje de daño."
+            return new TranslatableText(
+                    "screen.smartmendcraft.mode.balance.description"
             );
         }
 
-        return new LiteralText(
-                "Termina un objeto antes de continuar con otro."
+        return new TranslatableText(
+                "screen.smartmendcraft.mode.finish.description"
         );
     }
 
     private Text getHudEnabledText() {
 
-        return new LiteralText(
-                "Notificación: "
-                        + getOnOff(
-                                SmartMendingClientConfig
-                                        .isShowHud()
-                        )
+        return new TranslatableText(
+                "screen.smartmendcraft.notification",
+                getOnOff(
+                        SmartMendingClientConfig
+                                .isShowHud()
+                )
         );
     }
 
@@ -515,44 +528,62 @@ public class SmartMendingConfigScreen extends Screen {
                 SmartMendingClientConfig
                         .getHudPosition();
 
-        /*
-         * En ventana pequeña usamos nombres
-         * ligeramente más cortos.
-         */
-        if (compact) {
+        return new TranslatableText(
+                "screen.smartmendcraft.position",
+                getHudPositionName(
+                        position,
+                        compact
+                )
+        );
+    }
 
-            switch (position) {
+    /**
+     * Devuelve el nombre traducido de la posición
+     * del HUD.
+     */
+    private Text getHudPositionName(
+            HudPosition position,
+            boolean compact) {
 
-                case TOP_LEFT:
-                    return new LiteralText(
-                            "Posición: Arriba izq."
-                    );
+        String suffix;
 
-                case TOP_CENTER:
-                    return new LiteralText(
-                            "Posición: Arriba centro"
-                    );
+        switch (position) {
 
-                case TOP_RIGHT:
-                    return new LiteralText(
-                            "Posición: Arriba der."
-                    );
+            case TOP_LEFT:
+                suffix = "top_left";
+                break;
 
-                case BOTTOM_LEFT:
-                    return new LiteralText(
-                            "Posición: Abajo izq."
-                    );
+            case TOP_CENTER:
+                suffix = "top_center";
+                break;
 
-                case BOTTOM_RIGHT:
-                    return new LiteralText(
-                            "Posición: Abajo der."
-                    );
-            }
+            case TOP_RIGHT:
+                suffix = "top_right";
+                break;
+
+            case BOTTOM_LEFT:
+                suffix = "bottom_left";
+                break;
+
+            case BOTTOM_RIGHT:
+                suffix = "bottom_right";
+                break;
+
+            default:
+                suffix = "top_left";
+                break;
         }
 
-        return new LiteralText(
-                "Posición: "
-                        + position.getDisplayName()
+        String key =
+                "screen.smartmendcraft.position."
+                        + suffix;
+
+        if (compact) {
+            key += "_short";
+        }
+
+        return new TranslatableText(
+                key
         );
     }
 
@@ -636,8 +667,8 @@ public class SmartMendingConfigScreen extends Screen {
         drawCenteredText(
                 matrices,
                 this.textRenderer,
-                new LiteralText(
-                        "Prioridad de reparación"
+                new TranslatableText(
+                        "screen.smartmendcraft.repair_priority"
                 ),
                 leftCenterX,
                 startY - 20,
@@ -658,8 +689,8 @@ public class SmartMendingConfigScreen extends Screen {
             drawCenteredText(
                     matrices,
                     this.textRenderer,
-                    new LiteralText(
-                            "Modo de inventario"
+                    new TranslatableText(
+                            "screen.smartmendcraft.inventory_mode"
                     ),
                     rightCenterX,
                     startY - 20,
@@ -692,8 +723,8 @@ public class SmartMendingConfigScreen extends Screen {
             drawCenteredText(
                     matrices,
                     this.textRenderer,
-                    new LiteralText(
-                            "Notificación de reparación"
+                    new TranslatableText(
+                            "screen.smartmendcraft.repair_notification"
                     ),
                     rightCenterX,
                     hudStartY - 18,
@@ -713,6 +744,7 @@ public class SmartMendingConfigScreen extends Screen {
     public void onClose() {
 
         if (this.client != null) {
+
             this.client.setScreen(
                     parent
             );

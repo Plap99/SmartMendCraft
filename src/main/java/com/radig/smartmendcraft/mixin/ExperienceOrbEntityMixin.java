@@ -1,5 +1,6 @@
 package com.radig.smartmendcraft.mixin;
 
+import com.radig.smartmendcraft.network.SmartMendingClients;
 import com.radig.smartmendcraft.repair.MendingRepairEvents;
 import com.radig.smartmendcraft.repair.SmartMendingManager;
 
@@ -25,10 +26,34 @@ public abstract class ExperienceOrbEntityMixin {
             int experienceAmount,
             CallbackInfoReturnable<Integer> cir) {
 
-        int remainingExperience =
-                smartMendCraft$repairItems(player, experienceAmount);
+        /*
+         * Si el jugador NO tiene SmartMendCraft
+         * instalado en su cliente, no hacemos nada.
+         *
+         * Al no establecer un valor de retorno,
+         * el método original de Minecraft continúa
+         * normalmente y usa Mending vanilla.
+         */
+        if (!SmartMendingClients.hasSmartMendCraft(player)) {
+            return;
+        }
 
-        cir.setReturnValue(remainingExperience);
+        /*
+         * El jugador sí tiene SmartMendCraft.
+         *
+         * Ejecutamos nuestro sistema de reparación
+         * inteligente y sustituimos el comportamiento
+         * vanilla.
+         */
+        int remainingExperience =
+                smartMendCraft$repairItems(
+                        player,
+                        experienceAmount
+                );
+
+        cir.setReturnValue(
+                remainingExperience
+        );
     }
 
     /**
@@ -42,24 +67,31 @@ public abstract class ExperienceOrbEntityMixin {
         while (experienceAmount > 0) {
 
             ItemStack stack =
-                    SmartMendingManager.findItemToRepair(player);
+                    SmartMendingManager.findItemToRepair(
+                            player
+                    );
 
             if (stack.isEmpty()) {
                 break;
             }
 
-            int damage = stack.getDamage();
+            int damage =
+                    stack.getDamage();
 
             /*
              * Mending:
-             * 1 XP puede reparar hasta 2 puntos de durabilidad.
+             * 1 XP puede reparar hasta 2 puntos
+             * de durabilidad.
              */
-            int repairAmount = Math.min(
-                    experienceAmount * 2,
-                    damage
-            );
+            int repairAmount =
+                    Math.min(
+                            experienceAmount * 2,
+                            damage
+                    );
 
-            stack.setDamage(damage - repairAmount);
+            stack.setDamage(
+                    damage - repairAmount
+            );
 
             MendingRepairEvents.notifyItemRepaired(
                     player,
@@ -68,16 +100,20 @@ public abstract class ExperienceOrbEntityMixin {
             );
 
             /*
-             * Calculamos cuánta XP consumió la reparación.
+             * Calculamos cuánta XP consumió
+             * la reparación.
              *
              * Redondeamos hacia arriba:
+             *
              * 1-2 durabilidad = 1 XP
              * 3-4 durabilidad = 2 XP
              * etc.
              */
-            int experienceUsed = (repairAmount + 1) / 2;
+            int experienceUsed =
+                    (repairAmount + 1) / 2;
 
-            experienceAmount -= experienceUsed;
+            experienceAmount -=
+                    experienceUsed;
         }
 
         return experienceAmount;

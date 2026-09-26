@@ -7,7 +7,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.radig.smartmendcraft.network.SmartMendingNetworking;
+import com.radig.smartmendcraft.network.SmartMendingClients;
 import com.radig.smartmendcraft.repair.MendingRepairEvents;
+import com.radig.smartmendcraft.repair.SmartMendingManager;
 
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -24,8 +26,16 @@ public class SmartMendCraft implements ModInitializer {
 
     @Override
     public void onInitialize() {
+
         SmartMendingNetworking.registerServerReceivers();
 
+        /*
+         * Cargamos la configuración del jugador al entrar.
+         *
+         * No enviamos CONFIG_SYNC aquí.
+         * La sincronización ocurre después de que el cliente
+         * confirme que tiene SmartMendCraft mediante CLIENT_HELLO.
+         */
         ServerPlayConnectionEvents.JOIN.register(
                 (handler, sender, server) -> {
 
@@ -38,14 +48,42 @@ public class SmartMendCraft implements ModInitializer {
                             handler.player.getUuid(),
                             config
                     );
+                }
+        );
 
-                    SmartMendingNetworking.sendConfigSync(
-                            handler.player,
-                            config
+        /*
+         * Limpieza de datos temporales cuando
+         * un jugador abandona el servidor.
+         */
+        ServerPlayConnectionEvents.DISCONNECT.register(
+                (handler, server) -> {
+
+                    /*
+                     * Limpiamos el objetivo de FINISH_ITEM
+                     * asociado al jugador.
+                     */
+                    SmartMendingManager.clearPlayer(
+                            handler.player
+                    );
+
+                    /*
+                     * Eliminamos también el registro que indica
+                     * que este jugador tenía SmartMendCraft
+                     * instalado en el cliente.
+                     *
+                     * Así, si vuelve a entrar sin el mod,
+                     * utilizará Mending vanilla.
+                     */
+                    SmartMendingClients.unregister(
+                            handler.player
                     );
                 }
         );
 
+        /*
+         * Evento que informa al cliente cuando
+         * SmartMendCraft repara un objeto.
+         */
         MendingRepairEvents.register(
                 (player, stack, repairAmount) -> {
 
@@ -60,10 +98,14 @@ public class SmartMendCraft implements ModInitializer {
                 }
         );
 
-        LOGGER.info("SmartMendCraft iniciado correctamente.");
+        LOGGER.info(
+                "SmartMendCraft iniciado correctamente."
+        );
     }
 
     public static Identifier id(String path) {
-        return Identifier.tryParse(MOD_ID + ":" + path);
+        return Identifier.tryParse(
+                MOD_ID + ":" + path
+        );
     }
 }

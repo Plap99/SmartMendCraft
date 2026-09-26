@@ -15,6 +15,7 @@ import com.radig.smartmendcraft.network.SmartMendingNetworking;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
@@ -47,6 +48,22 @@ public class SmartMendCraftClient implements ClientModInitializer {
          */
         SmartMendingClientConfig.load();
 
+        /*
+        * -------------------------------------------------
+        * HANDSHAKE CON EL SERVIDOR
+        * -------------------------------------------------
+        *
+        * Al entrar a un servidor/mundo, informamos que
+        * este cliente tiene SmartMendCraft instalado.
+        */
+        ClientPlayConnectionEvents.JOIN.register(
+                (handler, sender, client) -> {
+
+                SmartMendingClientNetworking
+                        .sendClientHello();
+                }
+        );
+        
         /*
          * -------------------------------------------------
          * TECLA F7

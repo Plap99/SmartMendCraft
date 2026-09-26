@@ -1,0 +1,41 @@
+{
+  "category.smartmendcraft": "Smart Mend Craft",
+  "key.smartmendcraft.open_config": "Open configuration",
+
+  "screen.smartmendcraft.title": "Smart Mend Craft",
+  "screen.smartmendcraft.repair_priority": "Repair priority",
+  "screen.smartmendcraft.inventory_mode": "Inventory mode",
+  "screen.smartmendcraft.repair_notification": "Repair notification",
+
+  "screen.smartmendcraft.main_hand": "Main hand: %s",
+  "screen.smartmendcraft.main_hand_short": "Main: %s",
+  "screen.smartmendcraft.off_hand": "Off hand: %s",
+  "screen.smartmendcraft.off_hand_short": "Off hand: %s",
+  "screen.smartmendcraft.armor": "Armor: %s",
+  "screen.smartmendcraft.inventory": "Inventory: %s",
+
+  "screen.smartmendcraft.on": "ON",
+  "screen.smartmendcraft.off": "OFF",
+
+  "screen.smartmendcraft.mode.balance": "Balance repairs",
+  "screen.smartmendcraft.mode.finish": "Fully repair one item",
+  "screen.smartmendcraft.mode.balance.description": "Prioritizes the item with the highest damage percentage.",
+  "screen.smartmendcraft.mode.finish.description": "Finishes repairing one item before moving to another.",
+
+  "screen.smartmendcraft.notification": "Notification: %s",
+
+  "screen.smartmendcraft.position": "Position: %s",
+  "screen.smartmendcraft.position.top_left": "Top left",
+  "screen.smartmendcraft.position.top_center": "Top center",
+  "screen.smartmendcraft.position.top_right": "Top right",
+  "screen.smartmendcraft.position.bottom_left": "Bottom left",
+  "screen.smartmendcraft.position.bottom_right": "Bottom right",
+
+  "screen.smartmendcraft.position.top_left_short": "Top left",
+  "screen.smartmendcraft.position.top_center_short": "Top center",
+  "screen.smartmendcraft.position.top_right_short": "Top right",
+  "screen.smartmendcraft.position.bottom_left_short": "Bottom left",
+  "screen.smartmendcraft.position.bottom_right_short": "Bottom right",
+
+  "screen.smartmendcraft.done": "Done"
+}

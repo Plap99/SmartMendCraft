@@ -16,6 +16,25 @@ public final class SmartMendingClientNetworking {
     private SmartMendingClientNetworking() {
     }
 
+    /**
+     * Informa al servidor que este cliente tiene
+     * SmartMendCraft instalado.
+     */
+    public static void sendClientHello() {
+
+        PacketByteBuf buffer =
+                PacketByteBufs.create();
+
+        ClientPlayNetworking.send(
+                SmartMendingNetworking.CLIENT_HELLO,
+                buffer
+        );
+    }
+
+    /**
+     * Envía al servidor la configuración personal
+     * seleccionada por el jugador.
+     */
     public static void sendConfigUpdate(
             PlayerMendingConfig config) {
 
@@ -50,13 +69,15 @@ public final class SmartMendingClientNetworking {
         );
 
         for (MendingTarget target : priority) {
+
             buffer.writeInt(
                     target.ordinal()
             );
         }
 
         buffer.writeInt(
-                config.getInventoryMode().ordinal()
+                config.getInventoryMode()
+                        .ordinal()
         );
 
         ClientPlayNetworking.send(

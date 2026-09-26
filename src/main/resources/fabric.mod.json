@@ -1,34 +1,33 @@
 {
-	"schemaVersion": 1,
-	"id": "smartmendcraft",
-	"version": "${version}",
-	"name": "Smart Mend Craft",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/smartmendcraft/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"com.radig.smartmendcraft.SmartMendCraft"
-		],
-		"client": [
-			"com.radig.smartmendcraft.client.SmartMendCraftClient"
-		]
-	},
-	"mixins": [
-		"smartmendcraft.mixins.json"
-	],
-	"depends": {
-		"fabricloader": ">=0.19.5",
-		"minecraft": "~1.17.1",
-		"java": ">=16",
-		"fabric": "*"
-	}
+  "schemaVersion": 1,
+  "id": "smartmendcraft",
+  "version": "${version}",
+  "name": "Smart Mend Craft",
+  "description": "Improves the Mending enchantment with configurable repair priorities, inventory repair modes and visual repair notifications.",
+  "authors": [
+    "Radig"
+  ],
+  "contact": {
+    "sources": "https://github.com/Plap99/SmartMendCraft"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/smartmendcraft/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.radig.smartmendcraft.SmartMendCraft"
+    ],
+    "client": [
+      "com.radig.smartmendcraft.client.SmartMendCraftClient"
+    ]
+  },
+  "mixins": [
+    "smartmendcraft.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.17.1",
+    "java": ">=16",
+    "fabric": "*"
+  }
 }

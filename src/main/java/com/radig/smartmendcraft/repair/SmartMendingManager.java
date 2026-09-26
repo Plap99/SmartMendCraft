@@ -266,6 +266,25 @@ public final class SmartMendingManager {
     }
 
     /**
+     * Limpia cualquier objetivo temporal de reparación
+     * asociado a un jugador.
+     *
+     * Se utiliza cuando el jugador abandona el servidor
+     * para evitar conservar referencias innecesarias
+     * a ItemStack en memoria.
+     */
+    public static void clearPlayer(PlayerEntity player) {
+
+        if (player == null) {
+            return;
+        }
+
+        CURRENT_INVENTORY_TARGETS.remove(
+                player.getUuid()
+        );
+    }
+
+    /**
      * Comprueba si un objeto:
      * - existe
      * - está dañado
