@@ -20,21 +20,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.item.ItemStack;
-
-import net.minecraft.client.render.item.ItemRenderer;
-
-import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.render.DiffuseLighting;
-import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
 
 public class SmartMendCraftClient implements ClientModInitializer {
 
@@ -44,26 +34,25 @@ public class SmartMendCraftClient implements ClientModInitializer {
     public void onInitializeClient() {
 
         /*
-         * Configuración visual local.
+         * Configuracion visual local.
          */
         SmartMendingClientConfig.load();
 
         /*
-        * -------------------------------------------------
-        * HANDSHAKE CON EL SERVIDOR
-        * -------------------------------------------------
-        *
-        * Al entrar a un servidor/mundo, informamos que
-        * este cliente tiene SmartMendCraft instalado.
-        */
+         * -------------------------------------------------
+         * HANDSHAKE CON EL SERVIDOR
+         * -------------------------------------------------
+         *
+         * Al entrar a un servidor/mundo, informamos que
+         * este cliente tiene SmartMendCraft instalado.
+         */
         ClientPlayConnectionEvents.JOIN.register(
                 (handler, sender, client) -> {
-
-                SmartMendingClientNetworking
-                        .sendClientHello();
+                    SmartMendingClientNetworking
+                            .sendClientHello();
                 }
         );
-        
+
         /*
          * -------------------------------------------------
          * TECLA F7
@@ -80,7 +69,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
 
         /*
          * -------------------------------------------------
-         * ACTUALIZACIÓN DEL HUD DESDE EL SERVIDOR
+         * ACTUALIZACION DEL HUD DESDE EL SERVIDOR
          * -------------------------------------------------
          */
         ClientPlayNetworking.registerGlobalReceiver(
@@ -113,7 +102,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
 
         /*
          * -------------------------------------------------
-         * SINCRONIZACIÓN DE CONFIGURACIÓN PERSONAL
+         * SINCRONIZACION DE CONFIGURACION PERSONAL
          * -------------------------------------------------
          */
         ClientPlayNetworking.registerGlobalReceiver(
@@ -197,11 +186,11 @@ public class SmartMendCraftClient implements ClientModInitializer {
 
         /*
          * -------------------------------------------------
-         * HUD DE REPARACIÓN
+         * HUD DE REPARACION
          * -------------------------------------------------
          */
         HudRenderCallback.EVENT.register(
-                (matrixStack, tickDelta) -> {
+                (drawContext, tickDelta) -> {
 
                     if (!SmartMendingClientConfig.isShowHud()) {
                         return;
@@ -228,11 +217,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     }
 
                     /*
-                    * -------------------------------------------------
-                    * DATOS DEL HUD
-                    * -------------------------------------------------
-                    */
-
+                     * -------------------------------------------------
+                     * DATOS DEL HUD
+                     * -------------------------------------------------
+                     */
                     double durability =
                             Math.max(
                                     0.0,
@@ -252,11 +240,11 @@ public class SmartMendCraftClient implements ClientModInitializer {
                             percentage + "%";
 
                     /*
-                    * Trabajamos internamente con el tamaño normal
-                    * de Minecraft (icono de 16x16).
-                    *
-                    * Después escalamos todo el conjunto.
-                    */
+                     * Trabajamos internamente con el tamano normal
+                     * de Minecraft (icono de 16x16).
+                     *
+                     * Despues escalamos todo el conjunto.
+                     */
                     final int iconSize = 16;
                     final int spacing = 3;
                     final int barHeight = 2;
@@ -279,16 +267,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                     + 4;
 
                     /*
-                    * -------------------------------------------------
-                    * ESCALA + PULSO
-                    * -------------------------------------------------
-                    *
-                    * Tamaño normal: 82%
-                    *
-                    * Al recibir reparación:
-                    * pequeño pulso hasta aproximadamente 90%.
-                    */
-
+                     * -------------------------------------------------
+                     * ESCALA + PULSO
+                     * -------------------------------------------------
+                     */
                     final float baseScale =
                             0.50F;
 
@@ -300,16 +282,16 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                     .getPulseProgress();
 
                     /*
-                    * Curva del pulso.
-                    *
-                    * getPulseProgress():
-                    *
-                    * 1 --------> 0
-                    *
-                    * Convertimos eso en un pulso que:
-                    *
-                    * normal -> crece -> normal
-                    */
+                     * Curva del pulso.
+                     *
+                     * getPulseProgress():
+                     *
+                     * 1 --------> 0
+                     *
+                     * Convertimos eso en un pulso:
+                     *
+                     * normal -> crece -> normal
+                     */
                     float pulseWave =
                             (float) Math.sin(
                                     pulseProgress
@@ -321,35 +303,33 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                     + (pulseWave
                                     * pulseStrength);
 
-
                     /*
-                    * -------------------------------------------------
-                    * FADE-OUT
-                    * -------------------------------------------------
-                    *
-                    * Durante los últimos 350 ms el HUD pasa
-                    * suavemente de opacidad completa a invisible.
-                    */
+                     * -------------------------------------------------
+                     * FADE-OUT
+                     * -------------------------------------------------
+                     */
                     float fade =
                             SmartMendingHudData
                                     .getFadeProgress();
 
                     /*
-                    * Alpha de 0 a 255 para texto y barra.
-                    */
+                     * Alpha de 0 a 255 para texto y barra.
+                     */
                     int alpha =
                             Math.max(
                                     0,
                                     Math.min(
                                             255,
-                                            Math.round(255.0F * fade)
+                                            Math.round(
+                                                    255.0F * fade
+                                            )
                                     )
                             );
-                                        
+
                     /*
-                    * Tamaño REAL que ocupará en pantalla
-                    * después de aplicar la escala.
-                    */
+                     * Tamano real que ocupara en pantalla
+                     * despues de aplicar la escala.
+                     */
                     int scaledHudWidth =
                             Math.round(
                                     hudWidth * scale
@@ -361,11 +341,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                             );
 
                     /*
-                    * -------------------------------------------------
-                    * POSICIÓN
-                    * -------------------------------------------------
-                    */
-
+                     * -------------------------------------------------
+                     * POSICION
+                     * -------------------------------------------------
+                     */
                     int screenWidth =
                             client.getWindow()
                                     .getScaledWidth();
@@ -378,8 +357,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     final int topMargin = 10;
 
                     /*
-                    * Espacio para no invadir la hotbar.
-                    */
+                     * Espacio para no invadir la hotbar.
+                     */
                     final int bottomMargin = 55;
 
                     int screenX;
@@ -454,16 +433,18 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     }
 
                     /*
-                    * -------------------------------------------------
-                    * MATRIZ DEL HUD
-                    * -------------------------------------------------
-                    *
-                    * Primero nos movemos a la posición real.
-                    * Después escalamos.
-                    *
-                    * Así x=0, y=0 representa la esquina
-                    * superior izquierda del HUD.
-                    */
+                     * -------------------------------------------------
+                     * MATRIZ DEL HUD
+                     * -------------------------------------------------
+                     *
+                     * Primero nos movemos a la posicion real.
+                     * Despues escalamos.
+                     *
+                     * Asi x=0, y=0 representa la esquina
+                     * superior izquierda del HUD.
+                     */
+                    MatrixStack matrixStack =
+                            drawContext.getMatrices();
 
                     matrixStack.push();
 
@@ -480,13 +461,13 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     );
 
                     /*
-                    * -------------------------------------------------
-                    * ONDAS DE REPARACIÓN
-                    * -------------------------------------------------
-                    *
-                    * Dos ondas convergen hacia el HUD cuando
-                    * recibimos una reparación.
-                    */
+                     * -------------------------------------------------
+                     * ONDAS DE REPARACION
+                     * -------------------------------------------------
+                     *
+                     * Dos ondas convergen hacia el HUD cuando
+                     * recibimos una reparacion.
+                     */
                     long waveElapsed =
                             SmartMendingHudData
                                     .getTimeSinceLastUpdate();
@@ -500,16 +481,16 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                 waveElapsed / waveDuration;
 
                         /*
-                        * 0 = onda alejada
-                        * 1 = onda llegando al HUD
-                        */
+                         * 0 = onda alejada
+                         * 1 = onda llegando al HUD
+                         */
                         float waveDistance =
                                 1.0F - waveProgress;
 
                         /*
-                        * Las ondas también se van haciendo
-                        * transparentes al acercarse.
-                        */
+                         * Las ondas tambien se van haciendo
+                         * transparentes al acercarse.
+                         */
                         int waveAlpha =
                                 Math.max(
                                         0,
@@ -527,10 +508,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                         | 0x0055FF55;
 
                         /*
-                        * -------------------------------------------------
-                        * ONDA EXTERIOR
-                        * -------------------------------------------------
-                        */
+                         * -------------------------------------------------
+                         * ONDA EXTERIOR
+                         * -------------------------------------------------
+                         */
                         int outerExpansion =
                                 Math.round(
                                         12.0F
@@ -538,7 +519,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                 );
 
                         drawWaveRectangle(
-                                matrixStack,
+                                drawContext,
                                 -outerExpansion,
                                 -outerExpansion,
                                 hudWidth + outerExpansion,
@@ -547,13 +528,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                         );
 
                         /*
-                        * -------------------------------------------------
-                        * ONDA INTERIOR
-                        * -------------------------------------------------
-                        *
-                        * Va un poco adelantada respecto
-                        * a la onda exterior.
-                        */
+                         * -------------------------------------------------
+                         * ONDA INTERIOR
+                         * -------------------------------------------------
+                         */
                         float innerDistance =
                                 Math.max(
                                         0.0F,
@@ -579,7 +557,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                             | 0x0055FF55;
 
                             drawWaveRectangle(
-                                    matrixStack,
+                                    drawContext,
                                     -innerExpansion,
                                     -innerExpansion,
                                     hudWidth + innerExpansion,
@@ -590,128 +568,24 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     }
 
                     /*
-                    * -------------------------------------------------
-                    * ICONO
-                    * -------------------------------------------------
-                    */
-
-                    ItemRenderer itemRenderer =
-                            client.getItemRenderer();
-
-                    BakedModel model =
-                            itemRenderer.getHeldItemModel(
-                                    stack,
-                                    null,
-                                    null,
-                                    0
-                            );
-
-                    /*
-                    * ItemRenderer 1.17.1 utiliza la matriz
-                    * ModelView de RenderSystem para los iconos GUI.
-                    *
-                    * La posicion screenX/screenY ya está calculada
-                    * utilizando el tamaño escalado del HUD.
-                    */
-                    MatrixStack itemMatrix =
-                            RenderSystem.getModelViewStack();
-
-                    itemMatrix.push();
-
-                    /*
-                    * Nos colocamos en el centro del icono.
-                    *
-                    * El icono original mide 16x16.
-                    * Después aplicamos nuestra escala.
-                    */
-                    itemMatrix.translate(
-                            screenX + (8.0F * scale),
-                            screenY + (8.0F * scale),
-                            100.0F + itemRenderer.zOffset
-                    );
-
-                    /*
-                    * Equivalente a la transformación GUI de Minecraft,
-                    * pero multiplicada por nuestra escala.
-                    */
-                    itemMatrix.scale(
-                            scale,
-                            -scale,
-                            scale
-                    );
-
-                    itemMatrix.scale(
-                            16.0F,
-                            16.0F,
-                            16.0F
-                    );
-
-                    RenderSystem.applyModelViewMatrix();
-
-                    MatrixStack itemRenderMatrix =
-                            new MatrixStack();
-
-                    VertexConsumerProvider.Immediate vertexConsumers =
-                            client.getBufferBuilders()
-                                    .getEntityVertexConsumers();
-
-                    boolean disableLighting =
-                            !model.isSideLit();
-
-                    if (disableLighting) {
-                        DiffuseLighting.disableGuiDepthLighting();
-                    }
-
-                    /*
-                    * Aplicamos el fade también al modelo del objeto.
-                    */
-                    RenderSystem.setShaderColor(
-                            1.0F,
-                            1.0F,
-                            1.0F,
-                            fade
-                    );
-
-                    itemRenderer.renderItem(
+                     * -------------------------------------------------
+                     * ICONO
+                     * -------------------------------------------------
+                     *
+                     * DrawContext 1.20.1 se encarga internamente
+                     * del modelo, iluminacion y transformacion GUI.
+                     */
+                    drawContext.drawItem(
                             stack,
-                            ModelTransformation.Mode.GUI,
-                            false,
-                            itemRenderMatrix,
-                            vertexConsumers,
-                            LightmapTextureManager.MAX_LIGHT_COORDINATE,
-                            OverlayTexture.DEFAULT_UV,
-                            model
+                            0,
+                            0
                     );
 
-                    vertexConsumers.draw();
-
                     /*
-                    * Restauramos inmediatamente el color global
-                    * para no afectar al resto del HUD o Minecraft.
-                    */
-                    RenderSystem.setShaderColor(
-                            1.0F,
-                            1.0F,
-                            1.0F,
-                            1.0F
-                    );
-
-                    RenderSystem.enableDepthTest();
-
-                    if (disableLighting) {
-                        DiffuseLighting.enableGuiDepthLighting();
-                    }
-
-                    itemMatrix.pop();
-
-                    RenderSystem.applyModelViewMatrix();
-
-                    /*
-                    * -------------------------------------------------
-                    * PORCENTAJE
-                    * -------------------------------------------------
-                    */
-
+                     * -------------------------------------------------
+                     * PORCENTAJE
+                     * -------------------------------------------------
+                     */
                     int textY =
                             (iconSize - textHeight)
                                     / 2;
@@ -720,8 +594,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                             (alpha << 24)
                                     | 0x00FFFFFF;
 
-                    client.textRenderer.drawWithShadow(
-                            matrixStack,
+                    drawContext.drawTextWithShadow(
+                            client.textRenderer,
                             text,
                             iconSize + spacing,
                             textY,
@@ -729,11 +603,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     );
 
                     /*
-                    * -------------------------------------------------
-                    * BARRA DE DURABILIDAD
-                    * -------------------------------------------------
-                    */
-
+                     * -------------------------------------------------
+                     * BARRA DE DURABILIDAD
+                     * -------------------------------------------------
+                     */
                     int barWidth =
                             hudWidth;
 
@@ -754,12 +627,11 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     int backgroundColor =
                             (backgroundAlpha << 24)
                                     | 0x000000;
-                                    
+
                     /*
-                    * Fondo.
-                    */
-                    net.minecraft.client.gui.DrawableHelper.fill(
-                            matrixStack,
+                     * Fondo.
+                     */
+                    drawContext.fill(
                             0,
                             barY,
                             barWidth,
@@ -768,16 +640,15 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     );
 
                     int barColor =
-                        (alpha << 24)
-                                | 0x0055FF55;
-                                
+                            (alpha << 24)
+                                    | 0x0055FF55;
+
                     /*
-                    * Durabilidad reparada.
-                    */
+                     * Durabilidad reparada.
+                     */
                     if (filledWidth > 0) {
 
-                        net.minecraft.client.gui.DrawableHelper.fill(
-                                matrixStack,
+                        drawContext.fill(
                                 0,
                                 barY,
                                 filledWidth,
@@ -792,7 +663,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
 
         /*
          * -------------------------------------------------
-         * ABRIR CONFIGURACIÓN CON F7
+         * ABRIR CONFIGURACION CON F7
          * -------------------------------------------------
          */
         ClientTickEvents.END_CLIENT_TICK.register(
@@ -814,24 +685,21 @@ public class SmartMendCraftClient implements ClientModInitializer {
     }
 
     /*
-    * Dibuja un contorno rectangular de 1 píxel.
-    *
-    * Se utiliza para las ondas visuales
-    * de reparación del HUD.
-    */
+     * Dibuja un contorno rectangular de 1 pixel.
+     *
+     * Se utiliza para las ondas visuales
+     * de reparacion del HUD.
+     */
     private static void drawWaveRectangle(
-            MatrixStack matrixStack,
+            DrawContext drawContext,
             int left,
             int top,
             int right,
             int bottom,
             int color) {
 
-        /*
-        * Arriba
-        */
-        net.minecraft.client.gui.DrawableHelper.fill(
-                matrixStack,
+        // Arriba
+        drawContext.fill(
                 left,
                 top,
                 right,
@@ -839,11 +707,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                 color
         );
 
-        /*
-        * Abajo
-        */
-        net.minecraft.client.gui.DrawableHelper.fill(
-                matrixStack,
+        // Abajo
+        drawContext.fill(
                 left,
                 bottom - 1,
                 right,
@@ -851,11 +716,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                 color
         );
 
-        /*
-        * Izquierda
-        */
-        net.minecraft.client.gui.DrawableHelper.fill(
-                matrixStack,
+        // Izquierda
+        drawContext.fill(
                 left,
                 top,
                 left + 1,
@@ -863,11 +725,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                 color
         );
 
-        /*
-        * Derecha
-        */
-        net.minecraft.client.gui.DrawableHelper.fill(
-                matrixStack,
+        // Derecha
+        drawContext.fill(
                 right - 1,
                 top,
                 right,

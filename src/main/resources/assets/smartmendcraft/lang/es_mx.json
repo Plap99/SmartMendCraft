@@ -5,7 +5,6 @@
   "screen.smartmendcraft.title": "Smart Mend Craft",
   "screen.smartmendcraft.repair_priority": "Prioridad de reparación",
   "screen.smartmendcraft.inventory_mode": "Modo de inventario",
-  "screen.smartmendcraft.repair_notification": "Notificación de reparación",
 
   "screen.smartmendcraft.main_hand": "Mano principal: %s",
   "screen.smartmendcraft.main_hand_short": "Principal: %s",
@@ -13,18 +12,26 @@
   "screen.smartmendcraft.off_hand_short": "Secundaria: %s",
   "screen.smartmendcraft.armor": "Armadura: %s",
   "screen.smartmendcraft.inventory": "Inventario: %s",
+  "screen.smartmendcraft.inventory_short": "Inventario: %s",
 
   "screen.smartmendcraft.on": "ON",
   "screen.smartmendcraft.off": "OFF",
 
   "screen.smartmendcraft.mode.balance": "Equilibrar reparación",
+  "screen.smartmendcraft.mode.balance_short": "Equilibrar",
   "screen.smartmendcraft.mode.finish": "Reparar uno por completo",
-  "screen.smartmendcraft.mode.balance.description": "Prioriza el objeto con mayor porcentaje de daño.",
-  "screen.smartmendcraft.mode.finish.description": "Termina un objeto antes de continuar con otro.",
+  "screen.smartmendcraft.mode.finish_short": "Completar uno",
 
-  "screen.smartmendcraft.notification": "Notificación: %s",
+  "screen.smartmendcraft.mode.balance_description": "Prioriza el objeto con mayor porcentaje de daño.",
+  "screen.smartmendcraft.mode.finish_description": "Termina un objeto antes de continuar con otro.",
+
+  "screen.smartmendcraft.hud_title": "Notificación de reparación",
+  "screen.smartmendcraft.hud": "Notificación: %s",
+  "screen.smartmendcraft.hud_short": "HUD: %s",
 
   "screen.smartmendcraft.position": "Posición: %s",
+  "screen.smartmendcraft.position_short": "Pos.: %s",
+
   "screen.smartmendcraft.position.top_left": "Superior izquierda",
   "screen.smartmendcraft.position.top_center": "Superior centro",
   "screen.smartmendcraft.position.top_right": "Superior derecha",

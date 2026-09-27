@@ -9,21 +9,19 @@ import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 
 public class SmartMendingConfigScreen extends Screen {
 
     private final Screen parent;
 
     public SmartMendingConfigScreen(Screen parent) {
-
         super(
-                new TranslatableText(
+                Text.translatable(
                         "screen.smartmendcraft.title"
                 )
         );
@@ -51,8 +49,72 @@ public class SmartMendingConfigScreen extends Screen {
      * Indica si debemos utilizar el diseño compacto.
      */
     private boolean isCompact() {
-
         return this.width < 600;
+    }
+
+    /**
+     * Ancho máximo permitido para la descripción
+     * del modo de reparación del inventario.
+     */
+    private int getDescriptionMaxWidth(
+            boolean compact) {
+
+        return compact ? 150 : 190;
+    }
+
+    /**
+     * Devuelve las líneas ya ajustadas al ancho
+     * disponible en la columna derecha.
+     */
+    private List<OrderedText> getInventoryDescriptionLines(
+            PlayerMendingConfig config,
+            boolean compact) {
+
+        return this.textRenderer.wrapLines(
+                getInventoryModeDescription(config),
+                getDescriptionMaxWidth(compact)
+        );
+    }
+
+    /**
+     * Calcula la posición vertical del título del HUD
+     * dependiendo de cuántas líneas ocupe la descripción.
+     */
+    private int getHudTitleY(
+            int startY,
+            PlayerMendingConfig config,
+            boolean compact) {
+
+        int lineCount =
+                getInventoryDescriptionLines(
+                        config,
+                        compact
+                ).size();
+
+        int extraHeight =
+                Math.max(
+                        0,
+                        lineCount - 1
+                ) * 10;
+
+        return startY
+                + 48
+                + extraHeight;
+    }
+
+    /**
+     * Calcula dónde comienzan los botones del HUD.
+     */
+    private int getHudStartY(
+            int startY,
+            PlayerMendingConfig config,
+            boolean compact) {
+
+        return getHudTitleY(
+                startY,
+                config,
+                compact
+        ) + 18;
     }
 
     @Override
@@ -78,18 +140,6 @@ public class SmartMendingConfigScreen extends Screen {
         int centerX =
                 this.width / 2;
 
-        /*
-         * -------------------------------------------------
-         * MEDIDAS RESPONSIVE
-         * -------------------------------------------------
-         *
-         * En ventana pequeña reducimos:
-         *
-         * - separación entre columnas
-         * - ancho de botones
-         * - botones de flechas
-         * - separación vertical
-         */
         int columnOffset =
                 compact ? 88 : 115;
 
@@ -112,33 +162,17 @@ public class SmartMendingConfigScreen extends Screen {
                 compact ? 18 : 22;
 
         int rightButtonWidth =
-                compact ? 160 : 200;
-
-        /*
-         * -------------------------------------------------
-         * COLUMNA IZQUIERDA
-         * PRIORIDAD DE REPARACIÓN
-         * -------------------------------------------------
-         */
+                compact ? 150 : 190;
 
         List<MendingTarget> priority =
                 config.getPriority();
 
         /*
-         * Ancho total aproximado de la fila izquierda:
-         *
-         * categoría + separación + ↑ + separación + ↓
+         * -------------------------------------------------
+         * COLUMNA IZQUIERDA
+         * Prioridades de reparación
+         * -------------------------------------------------
          */
-        int leftRowWidth =
-                categoryWidth
-                        + 4
-                        + arrowWidth
-                        + 4
-                        + arrowWidth;
-
-        int leftStartX =
-                leftCenterX
-                        - (leftRowWidth / 2);
 
         for (int index = 0;
                 index < priority.size();
@@ -148,18 +182,13 @@ public class SmartMendingConfigScreen extends Screen {
                     priority.get(index);
 
             int y =
-                    startY
-                            + (index * rowSpacing);
+                    startY + (index * rowSpacing);
 
             /*
-             * Botón ON/OFF de la categoría.
+             * Activa/desactiva la categoría.
              */
             this.addDrawableChild(
-                    new ButtonWidget(
-                            leftStartX,
-                            y,
-                            categoryWidth,
-                            20,
+                    ButtonWidget.builder(
                             getTargetText(
                                     target,
                                     config,
@@ -176,23 +205,29 @@ public class SmartMendingConfigScreen extends Screen {
                                 refreshScreen();
                             }
                     )
+                    .dimensions(
+                            leftCenterX
+                                    - (categoryWidth / 2)
+                                    - arrowWidth
+                                    - 4,
+                            y,
+                            categoryWidth,
+                            20
+                    )
+                    .build()
             );
 
             /*
              * Subir prioridad.
              */
             int upX =
-                    leftStartX
-                            + categoryWidth
-                            + 4;
+                    leftCenterX
+                            + (categoryWidth / 2)
+                            - arrowWidth;
 
             ButtonWidget upButton =
-                    new ButtonWidget(
-                            upX,
-                            y,
-                            arrowWidth,
-                            20,
-                            new LiteralText("↑"),
+                    ButtonWidget.builder(
+                            Text.literal("↑"),
                             button -> {
 
                                 config.movePriorityUp(
@@ -202,7 +237,14 @@ public class SmartMendingConfigScreen extends Screen {
                                 sendConfig(config);
                                 refreshScreen();
                             }
-                    );
+                    )
+                    .dimensions(
+                            upX,
+                            y,
+                            arrowWidth,
+                            20
+                    )
+                    .build();
 
             upButton.active =
                     index > 0;
@@ -215,17 +257,11 @@ public class SmartMendingConfigScreen extends Screen {
              * Bajar prioridad.
              */
             int downX =
-                    upX
-                            + arrowWidth
-                            + 4;
+                    upX + arrowWidth + 2;
 
             ButtonWidget downButton =
-                    new ButtonWidget(
-                            downX,
-                            y,
-                            arrowWidth,
-                            20,
-                            new LiteralText("↓"),
+                    ButtonWidget.builder(
+                            Text.literal("↓"),
                             button -> {
 
                                 config.movePriorityDown(
@@ -235,7 +271,14 @@ public class SmartMendingConfigScreen extends Screen {
                                 sendConfig(config);
                                 refreshScreen();
                             }
-                    );
+                    )
+                    .dimensions(
+                            downX,
+                            y,
+                            arrowWidth,
+                            20
+                    )
+                    .build();
 
             downButton.active =
                     index < priority.size() - 1;
@@ -248,66 +291,80 @@ public class SmartMendingConfigScreen extends Screen {
         /*
          * -------------------------------------------------
          * COLUMNA DERECHA
-         * MODO DEL INVENTARIO
+         * Modo de reparación del inventario
          * -------------------------------------------------
          */
 
-        int rightButtonX =
-                rightCenterX
-                        - (rightButtonWidth / 2);
+        int inventoryModeY =
+                startY;
 
         this.addDrawableChild(
-                new ButtonWidget(
-                        rightButtonX,
-                        startY,
-                        rightButtonWidth,
-                        20,
-                        getInventoryModeText(config),
+                ButtonWidget.builder(
+                        getInventoryModeText(
+                                config,
+                                compact
+                        ),
                         button -> {
 
-                            toggleInventoryMode(config);
+                            toggleInventoryMode(
+                                    config
+                            );
 
                             sendConfig(config);
                             refreshScreen();
                         }
                 )
+                .dimensions(
+                        rightCenterX
+                                - (rightButtonWidth / 2),
+                        inventoryModeY,
+                        rightButtonWidth,
+                        20
+                )
+                .build()
         );
 
         /*
          * -------------------------------------------------
-         * COLUMNA DERECHA
-         * NOTIFICACIÓN
+         * HUD
          * -------------------------------------------------
          */
 
         int hudStartY =
-                compact
-                        ? startY + 52
-                        : startY + 72;
+                getHudStartY(
+                        startY,
+                        config,
+                        compact
+                );
 
         this.addDrawableChild(
-                new ButtonWidget(
-                        rightButtonX,
-                        hudStartY,
-                        rightButtonWidth,
-                        20,
-                        getHudEnabledText(),
+                ButtonWidget.builder(
+                        getHudEnabledText(
+                                compact
+                        ),
                         button -> {
 
                             SmartMendingClientConfig
-                                    .toggleHud();
+                                    .setShowHud(
+                                            !SmartMendingClientConfig
+                                                    .isShowHud()
+                                    );
 
                             refreshScreen();
                         }
                 )
+                .dimensions(
+                        rightCenterX
+                                - (rightButtonWidth / 2),
+                        hudStartY,
+                        rightButtonWidth,
+                        20
+                )
+                .build()
         );
 
         this.addDrawableChild(
-                new ButtonWidget(
-                        rightButtonX,
-                        hudStartY + 24,
-                        rightButtonWidth,
-                        20,
+                ButtonWidget.builder(
                         getHudPositionText(
                                 compact
                         ),
@@ -319,6 +376,14 @@ public class SmartMendingConfigScreen extends Screen {
                             refreshScreen();
                         }
                 )
+                .dimensions(
+                        rightCenterX
+                                - (rightButtonWidth / 2),
+                        hudStartY + 24,
+                        rightButtonWidth,
+                        20
+                )
+                .build()
         );
 
         /*
@@ -342,16 +407,19 @@ public class SmartMendingConfigScreen extends Screen {
                 ) + (compact ? 10 : 18);
 
         this.addDrawableChild(
-                new ButtonWidget(
+                ButtonWidget.builder(
+                        Text.translatable(
+                                "screen.smartmendcraft.done"
+                        ),
+                        button -> close()
+                )
+                .dimensions(
                         centerX - 50,
                         doneY,
                         100,
-                        20,
-                        new TranslatableText(
-                                "screen.smartmendcraft.done"
-                        ),
-                        button -> onClose()
+                        20
                 )
+                .build()
         );
     }
 
@@ -404,7 +472,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case MAIN_HAND:
 
-                return new TranslatableText(
+                return Text.translatable(
                         compact
                                 ? "screen.smartmendcraft.main_hand_short"
                                 : "screen.smartmendcraft.main_hand",
@@ -415,7 +483,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case OFF_HAND:
 
-                return new TranslatableText(
+                return Text.translatable(
                         compact
                                 ? "screen.smartmendcraft.off_hand_short"
                                 : "screen.smartmendcraft.off_hand",
@@ -426,7 +494,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case ARMOR:
 
-                return new TranslatableText(
+                return Text.translatable(
                         "screen.smartmendcraft.armor",
                         getOnOff(
                                 config.isRepairArmor()
@@ -435,8 +503,10 @@ public class SmartMendingConfigScreen extends Screen {
 
             case INVENTORY:
 
-                return new TranslatableText(
-                        "screen.smartmendcraft.inventory",
+                return Text.translatable(
+                        compact
+                                ? "screen.smartmendcraft.inventory_short"
+                                : "screen.smartmendcraft.inventory",
                         getOnOff(
                                 config.isRepairInventory()
                         )
@@ -444,20 +514,18 @@ public class SmartMendingConfigScreen extends Screen {
 
             default:
 
-                return new LiteralText(
+                return Text.literal(
                         target.name()
                 );
         }
     }
 
-    private Text getOnOff(
+    private String getOnOff(
             boolean enabled) {
 
-        return new TranslatableText(
-                enabled
-                        ? "screen.smartmendcraft.on"
-                        : "screen.smartmendcraft.off"
-        );
+        return enabled
+                ? "ON"
+                : "OFF";
     }
 
     private void toggleInventoryMode(
@@ -479,18 +547,23 @@ public class SmartMendingConfigScreen extends Screen {
     }
 
     private Text getInventoryModeText(
-            PlayerMendingConfig config) {
+            PlayerMendingConfig config,
+            boolean compact) {
 
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return new TranslatableText(
-                    "screen.smartmendcraft.mode.balance"
+            return Text.translatable(
+                    compact
+                            ? "screen.smartmendcraft.mode.balance_short"
+                            : "screen.smartmendcraft.mode.balance"
             );
         }
 
-        return new TranslatableText(
-                "screen.smartmendcraft.mode.finish"
+        return Text.translatable(
+                compact
+                        ? "screen.smartmendcraft.mode.finish_short"
+                        : "screen.smartmendcraft.mode.finish"
         );
     }
 
@@ -500,20 +573,23 @@ public class SmartMendingConfigScreen extends Screen {
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return new TranslatableText(
-                    "screen.smartmendcraft.mode.balance.description"
+            return Text.translatable(
+                    "screen.smartmendcraft.mode.balance_description"
             );
         }
 
-        return new TranslatableText(
-                "screen.smartmendcraft.mode.finish.description"
+        return Text.translatable(
+                "screen.smartmendcraft.mode.finish_description"
         );
     }
 
-    private Text getHudEnabledText() {
+    private Text getHudEnabledText(
+            boolean compact) {
 
-        return new TranslatableText(
-                "screen.smartmendcraft.notification",
+        return Text.translatable(
+                compact
+                        ? "screen.smartmendcraft.hud_short"
+                        : "screen.smartmendcraft.hud",
                 getOnOff(
                         SmartMendingClientConfig
                                 .isShowHud()
@@ -528,8 +604,10 @@ public class SmartMendingConfigScreen extends Screen {
                 SmartMendingClientConfig
                         .getHudPosition();
 
-        return new TranslatableText(
-                "screen.smartmendcraft.position",
+        return Text.translatable(
+                compact
+                        ? "screen.smartmendcraft.position_short"
+                        : "screen.smartmendcraft.position",
                 getHudPositionName(
                         position,
                         compact
@@ -582,7 +660,7 @@ public class SmartMendingConfigScreen extends Screen {
             key += "_short";
         }
 
-        return new TranslatableText(
+        return Text.translatable(
                 key
         );
     }
@@ -616,13 +694,13 @@ public class SmartMendingConfigScreen extends Screen {
 
     @Override
     public void render(
-            MatrixStack matrices,
+            DrawContext context,
             int mouseX,
             int mouseY,
             float delta) {
 
         this.renderBackground(
-                matrices
+                context
         );
 
         boolean compact =
@@ -644,13 +722,9 @@ public class SmartMendingConfigScreen extends Screen {
                 compact ? 60 : 72;
 
         /*
-         * -------------------------------------------------
-         * TÍTULO PRINCIPAL
-         * -------------------------------------------------
+         * Título principal.
          */
-
-        drawCenteredText(
-                matrices,
+        context.drawCenteredTextWithShadow(
                 this.textRenderer,
                 this.title,
                 centerX,
@@ -659,15 +733,11 @@ public class SmartMendingConfigScreen extends Screen {
         );
 
         /*
-         * -------------------------------------------------
-         * COLUMNA IZQUIERDA
-         * -------------------------------------------------
+         * Columna izquierda.
          */
-
-        drawCenteredText(
-                matrices,
+        context.drawCenteredTextWithShadow(
                 this.textRenderer,
-                new TranslatableText(
+                Text.translatable(
                         "screen.smartmendcraft.repair_priority"
                 ),
                 leftCenterX,
@@ -676,20 +746,16 @@ public class SmartMendingConfigScreen extends Screen {
         );
 
         /*
-         * -------------------------------------------------
-         * COLUMNA DERECHA
-         * -------------------------------------------------
+         * Columna derecha.
          */
-
         PlayerMendingConfig config =
                 getConfig();
 
         if (config != null) {
 
-            drawCenteredText(
-                    matrices,
+            context.drawCenteredTextWithShadow(
                     this.textRenderer,
-                    new TranslatableText(
+                    Text.translatable(
                             "screen.smartmendcraft.inventory_mode"
                     ),
                     rightCenterX,
@@ -698,42 +764,59 @@ public class SmartMendingConfigScreen extends Screen {
             );
 
             /*
-             * La descripción larga solamente aparece
-             * cuando hay suficiente espacio horizontal.
+             * Descripción del modo de inventario.
+             *
+             * Se divide automáticamente en varias líneas
+             * para evitar que invada la columna izquierda.
              */
-            if (!compact) {
+            List<OrderedText> descriptionLines =
+                    getInventoryDescriptionLines(
+                            config,
+                            compact
+                    );
 
-                drawCenteredText(
-                        matrices,
+            int descriptionY =
+                    startY + 25;
+
+            for (OrderedText line : descriptionLines) {
+
+                context.drawCenteredTextWithShadow(
                         this.textRenderer,
-                        getInventoryModeDescription(
-                                config
-                        ),
+                        line,
                         rightCenterX,
-                        startY + 25,
+                        descriptionY,
                         0x888888
                 );
+
+                descriptionY += 10;
             }
 
-            int hudStartY =
-                    compact
-                            ? startY + 52
-                            : startY + 72;
+            /*
+             * Título del HUD.
+             *
+             * Su posición depende ahora del número de líneas
+             * utilizadas por la descripción anterior.
+             */
+            int hudTitleY =
+                    getHudTitleY(
+                            startY,
+                            config,
+                            compact
+                    );
 
-            drawCenteredText(
-                    matrices,
+            context.drawCenteredTextWithShadow(
                     this.textRenderer,
-                    new TranslatableText(
-                            "screen.smartmendcraft.repair_notification"
+                    Text.translatable(
+                            "screen.smartmendcraft.hud_title"
                     ),
                     rightCenterX,
-                    hudStartY - 18,
+                    hudTitleY,
                     0xAAAAAA
             );
         }
 
         super.render(
-                matrices,
+                context,
                 mouseX,
                 mouseY,
                 delta
@@ -741,13 +824,10 @@ public class SmartMendingConfigScreen extends Screen {
     }
 
     @Override
-    public void onClose() {
+    public void close() {
 
         if (this.client != null) {
-
-            this.client.setScreen(
-                    parent
-            );
+            this.client.setScreen(parent);
         }
     }
 }
