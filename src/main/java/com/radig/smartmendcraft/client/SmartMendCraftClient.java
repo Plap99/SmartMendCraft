@@ -237,7 +237,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                      * -------------------------------------------------
                      */
                     final float baseScale =
-                            0.50F;
+                        SmartMendingClientConfig
+                                .getHudScale();
 
                     final float pulseStrength =
                             0.06F;

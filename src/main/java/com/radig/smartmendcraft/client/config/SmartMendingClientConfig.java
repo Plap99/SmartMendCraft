@@ -22,6 +22,15 @@ public final class SmartMendingClientConfig {
                     .getConfigDir()
                     .resolve("smartmendcraft-client.json");
 
+    private static final float DEFAULT_HUD_SCALE =
+            0.50F;
+
+    private static final float MIN_HUD_SCALE =
+            0.25F;
+
+    private static final float MAX_HUD_SCALE =
+            1.00F;
+
     private static SmartMendingClientConfig instance =
             new SmartMendingClientConfig();
 
@@ -32,6 +41,9 @@ public final class SmartMendingClientConfig {
 
     private HudPosition hudPosition =
             HudPosition.TOP_LEFT;
+
+    private float hudScale =
+            DEFAULT_HUD_SCALE;
 
     private SmartMendingClientConfig() {
     }
@@ -57,15 +69,42 @@ public final class SmartMendingClientConfig {
             }
 
             /*
-             * Protección por si una configuración antigua
-             * no contiene todavía la posición del HUD.
+             * Proteccion por si una configuracion antigua
+             * no contiene todavia la posicion del HUD.
              */
             if (instance.hudPosition == null) {
+
                 instance.hudPosition =
                         HudPosition.TOP_LEFT;
-
-                save();
             }
+
+            /*
+             * Una configuracion antigua no contiene
+             * hudScale, por lo que puede llegar como 0.
+             *
+             * En ese caso usamos el tamano actual
+             * del HUD como valor predeterminado: 50%.
+             */
+            if (instance.hudScale <= 0.0F) {
+
+                instance.hudScale =
+                        DEFAULT_HUD_SCALE;
+            } else {
+
+                float normalizedScale =
+                        clampHudScale(
+                                instance.hudScale
+                        );
+
+                if (normalizedScale
+                        != instance.hudScale) {
+
+                    instance.hudScale =
+                            normalizedScale;
+                }
+            }
+
+            save();
 
         } catch (Exception exception) {
 
@@ -111,6 +150,10 @@ public final class SmartMendingClientConfig {
         return instance.hudPosition;
     }
 
+    public static float getHudScale() {
+        return instance.hudScale;
+    }
+
     public static void setShowHud(boolean value) {
 
         instance.showHud = value;
@@ -130,6 +173,14 @@ public final class SmartMendingClientConfig {
         save();
     }
 
+    public static void setHudScale(float scale) {
+
+        instance.hudScale =
+                clampHudScale(scale);
+
+        save();
+    }
+
     public static void toggleHud() {
 
         instance.showHud =
@@ -144,5 +195,17 @@ public final class SmartMendingClientConfig {
                 instance.hudPosition.next();
 
         save();
+    }
+
+    private static float clampHudScale(
+            float scale) {
+
+        return Math.max(
+                MIN_HUD_SCALE,
+                Math.min(
+                        MAX_HUD_SCALE,
+                        scale
+                )
+        );
     }
 }

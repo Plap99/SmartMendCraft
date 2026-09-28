@@ -3,6 +3,7 @@ package com.radig.smartmendcraft.client;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -386,6 +387,81 @@ public class SmartMendingConfigScreen extends Screen {
 
         /*
          * -------------------------------------------------
+         * SLIDE TAMAÑO HUD
+         * -------------------------------------------------
+         */
+        int hudScaleY =
+                hudStartY + 48;
+
+        double sliderValue =
+                (SmartMendingClientConfig.getHudScale() - 0.25F)
+                        / 0.75F;
+
+        this.addRenderableWidget(
+                new AbstractSliderButton(
+                        rightCenterX
+                                - (rightButtonWidth / 2),
+                        hudScaleY,
+                        rightButtonWidth,
+                        20,
+                        Component.literal(
+                                "Tamaño HUD: "
+                                        + Math.round(
+                                                SmartMendingClientConfig
+                                                        .getHudScale()
+                                                        * 100.0F
+                                        )
+                                        + "%"
+                        ),
+                        sliderValue
+                ) {
+
+                @Override
+                protected void updateMessage() {
+
+                        int percent =
+                                Math.round(
+                                        SmartMendingClientConfig
+                                                .getHudScale()
+                                                * 100.0F
+                                );
+
+                        setMessage(
+                                Component.literal(
+                                        "Tamaño HUD: "
+                                                + percent
+                                                + "%"
+                                )
+                        );
+                }
+
+                @Override
+                protected void applyValue() {
+
+                        double rawScale =
+                                0.25
+                                        + (this.value * 0.75);
+
+                        int percent =
+                                (int) Math.round(
+                                        rawScale
+                                                * 100.0
+                                                / 5.0
+                                ) * 5;
+
+                        float scale =
+                                percent / 100.0F;
+
+                        SmartMendingClientConfig
+                                .setHudScale(scale);
+
+                        updateMessage();
+                }
+                }
+        );
+
+        /*
+         * -------------------------------------------------
          * BOTÓN LISTO
          * -------------------------------------------------
          */
@@ -396,7 +472,7 @@ public class SmartMendingConfigScreen extends Screen {
                         * rowSpacing);
 
         int rightBottom =
-                hudStartY + 44;
+                hudStartY + 68;
 
         int doneY =
                 Math.max(
