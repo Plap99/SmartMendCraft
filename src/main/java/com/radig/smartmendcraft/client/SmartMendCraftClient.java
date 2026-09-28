@@ -3,7 +3,6 @@ import com.radig.smartmendcraft.SmartMendCraft;
 
 import java.util.List;
 
-import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import com.radig.smartmendcraft.client.config.HudPosition;
@@ -71,8 +70,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
         openConfigKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping(
                         "key.smartmendcraft.open_config",
-                        InputConstants.Type.KEYSYM,
-                        GLFW.GLFW_KEY_F7,
+                        InputConstants.KEY_F7,
                         SMART_MEND_CRAFT_CATEGORY
                 )
         );
