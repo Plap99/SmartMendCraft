@@ -3,17 +3,15 @@ package com.radig.smartmendcraft.repair;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
-
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 
 public final class SmartMendingManager {
 
@@ -33,7 +31,7 @@ public final class SmartMendingManager {
      * Busca el siguiente objeto que SmartMendCraft debería reparar
      * siguiendo el orden configurado por el jugador.
      */
-    public static ItemStack findItemToRepair(PlayerEntity player) {
+    public static ItemStack findItemToRepair(Player player) {
         PlayerMendingConfig config =
                 PlayerMendingConfigs.get(player);
 
@@ -58,7 +56,7 @@ public final class SmartMendingManager {
      * Busca un objeto reparable dentro de una categoría concreta.
      */
     private static ItemStack findItemForTarget(
-            PlayerEntity player,
+            Player player,
             MendingTarget target,
             PlayerMendingConfig config) {
 
@@ -69,7 +67,7 @@ public final class SmartMendingManager {
                 if (config.isRepairMainHand()) {
 
                     ItemStack stack =
-                            player.getMainHandStack();
+                            player.getMainHandItem();
 
                     if (canBeRepaired(stack)) {
                         return stack;
@@ -83,7 +81,7 @@ public final class SmartMendingManager {
                 if (config.isRepairOffHand()) {
 
                     ItemStack stack =
-                            player.getOffHandStack();
+                            player.getOffhandItem();
 
                     if (canBeRepaired(stack)) {
                         return stack;
@@ -121,7 +119,7 @@ public final class SmartMendingManager {
      * Orden interno:
      * Cabeza -> Pecho -> Piernas -> Pies
      */
-    private static ItemStack findArmorToRepair(PlayerEntity player) {
+    private static ItemStack findArmorToRepair(Player player) {
 
         EquipmentSlot[] armorSlots = {
                 EquipmentSlot.HEAD,
@@ -132,7 +130,7 @@ public final class SmartMendingManager {
 
         for (EquipmentSlot slot : armorSlots) {
 
-            ItemStack stack = player.getEquippedStack(slot);
+            ItemStack stack = player.getItemBySlot(slot);
 
             if (canBeRepaired(stack)) {
                 return stack;
@@ -147,10 +145,10 @@ public final class SmartMendingManager {
      * según el modo configurado.
      */
     private static ItemStack findInventoryItemToRepair(
-            PlayerEntity player,
+            Player player,
             PlayerMendingConfig config) {
 
-        UUID playerId = player.getUuid();
+        UUID playerId = player.getUUID();
 
         if (config.getInventoryMode()
                 == InventoryMendingMode.FINISH_ITEM) {
@@ -168,7 +166,7 @@ public final class SmartMendingManager {
      * devuelve siempre el objeto con mayor porcentaje de daño.
      */
     private static ItemStack findMostDamagedInventoryItem(
-            PlayerEntity player) {
+            Player player) {
 
         ItemStack mostDamagedItem = ItemStack.EMPTY;
         double highestDamagePercentage = -1.0;
@@ -176,14 +174,14 @@ public final class SmartMendingManager {
         for (int slot = 0; slot < 36; slot++) {
 
             ItemStack stack =
-                    player.getInventory().getStack(slot);
+                    player.getInventory().getItem(slot);
 
             if (!canBeRepaired(stack)) {
                 continue;
             }
 
             double damagePercentage =
-                    (double) stack.getDamage()
+                    (double) stack.getDamageValue()
                             / stack.getMaxDamage();
 
             if (damagePercentage > highestDamagePercentage) {
@@ -207,9 +205,9 @@ public final class SmartMendingManager {
      * Después selecciona otro objeto.
      */
     private static ItemStack findInventoryItemFinishMode(
-            PlayerEntity player) {
+            Player player) {
 
-        UUID playerId = player.getUuid();
+        UUID playerId = player.getUUID();
 
         ItemStack currentTarget =
                 CURRENT_INVENTORY_TARGETS.get(playerId);
@@ -238,7 +236,7 @@ public final class SmartMendingManager {
      * y continúe dentro del inventario del jugador.
      */
     private static boolean isCurrentTargetValid(
-            PlayerEntity player,
+            Player player,
             ItemStack currentTarget) {
 
         if (currentTarget == null
@@ -255,7 +253,7 @@ public final class SmartMendingManager {
         for (int slot = 0; slot < 36; slot++) {
 
             ItemStack stack =
-                    player.getInventory().getStack(slot);
+                    player.getInventory().getItem(slot);
 
             if (stack == currentTarget) {
                 return true;
@@ -273,22 +271,22 @@ public final class SmartMendingManager {
      * para evitar conservar referencias innecesarias
      * a ItemStack en memoria.
      */
-    public static void clearPlayer(PlayerEntity player) {
+    public static void clearPlayer(Player player) {
 
         if (player == null) {
             return;
         }
 
         CURRENT_INVENTORY_TARGETS.remove(
-                player.getUuid()
+                player.getUUID()
         );
     }
 
-    /**
+     /**
      * Comprueba si un objeto:
      * - existe
-     * - está dañado
-     * - tiene Reparación
+     * - esta danado
+     * - tiene Reparacion
      */
     private static boolean canBeRepaired(ItemStack stack) {
 
@@ -300,12 +298,17 @@ public final class SmartMendingManager {
             return false;
         }
 
-        Map<?, Integer> enchantments =
-                EnchantmentHelper.get(stack);
+        var enchantments =
+                EnchantmentHelper.getEnchantmentsForCrafting(stack);
 
-        Integer mendingLevel =
-                enchantments.get(Enchantments.MENDING);
-
-        return mendingLevel != null && mendingLevel > 0;
+        return enchantments.entrySet()
+                .stream()
+                .anyMatch(entry ->
+                        entry.getIntValue() > 0
+                        && entry.getKey()
+                                .unwrapKey()
+                                .map(Enchantments.MENDING::equals)
+                                .orElse(false)
+                );
     }
 }

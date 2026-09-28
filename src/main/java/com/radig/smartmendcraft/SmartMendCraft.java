@@ -1,8 +1,6 @@
 package com.radig.smartmendcraft;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,14 +8,13 @@ import com.radig.smartmendcraft.network.SmartMendingNetworking;
 import com.radig.smartmendcraft.network.SmartMendingClients;
 import com.radig.smartmendcraft.repair.MendingRepairEvents;
 import com.radig.smartmendcraft.repair.SmartMendingManager;
-
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 import com.radig.smartmendcraft.config.PlayerMendingConfigStorage;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 
 public class SmartMendCraft implements ModInitializer {
 
@@ -27,13 +24,14 @@ public class SmartMendCraft implements ModInitializer {
     @Override
     public void onInitialize() {
 
+        SmartMendingNetworking.registerPayloads();
         SmartMendingNetworking.registerServerReceivers();
 
         /*
-         * Cargamos la configuración del jugador al entrar.
+         * Cargamos la configuracion del jugador al entrar.
          *
-         * No enviamos CONFIG_SYNC aquí.
-         * La sincronización ocurre después de que el cliente
+         * No enviamos CONFIG_SYNC aqui.
+         * La sincronizacion ocurre despues de que el cliente
          * confirme que tiene SmartMendCraft mediante CLIENT_HELLO.
          */
         ServerPlayConnectionEvents.JOIN.register(
@@ -41,11 +39,11 @@ public class SmartMendCraft implements ModInitializer {
 
                     PlayerMendingConfig config =
                             PlayerMendingConfigStorage.load(
-                                    handler.player.getUuid()
+                                    handler.player.getUUID()
                             );
 
                     PlayerMendingConfigs.set(
-                            handler.player.getUuid(),
+                            handler.player.getUUID(),
                             config
                     );
                 }
@@ -58,22 +56,10 @@ public class SmartMendCraft implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register(
                 (handler, server) -> {
 
-                    /*
-                     * Limpiamos el objetivo de FINISH_ITEM
-                     * asociado al jugador.
-                     */
                     SmartMendingManager.clearPlayer(
                             handler.player
                     );
 
-                    /*
-                     * Eliminamos también el registro que indica
-                     * que este jugador tenía SmartMendCraft
-                     * instalado en el cliente.
-                     *
-                     * Así, si vuelve a entrar sin el mod,
-                     * utilizará Mending vanilla.
-                     */
                     SmartMendingClients.unregister(
                             handler.player
                     );
@@ -87,10 +73,10 @@ public class SmartMendCraft implements ModInitializer {
         MendingRepairEvents.register(
                 (player, stack, repairAmount) -> {
 
-                    if (player instanceof ServerPlayerEntity) {
+                    if (player instanceof ServerPlayer) {
 
                         SmartMendingNetworking.sendMendingUpdate(
-                                (ServerPlayerEntity) player,
+                                (ServerPlayer) player,
                                 stack,
                                 repairAmount
                         );
@@ -104,8 +90,9 @@ public class SmartMendCraft implements ModInitializer {
     }
 
     public static Identifier id(String path) {
-        return Identifier.tryParse(
-                MOD_ID + ":" + path
+        return Identifier.fromNamespaceAndPath(
+                MOD_ID,
+                path
         );
     }
 }

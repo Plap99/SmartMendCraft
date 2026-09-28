@@ -1,7 +1,11 @@
 package com.radig.smartmendcraft.client;
 
 import java.util.List;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import com.radig.smartmendcraft.client.config.HudPosition;
 import com.radig.smartmendcraft.client.config.SmartMendingClientConfig;
 import com.radig.smartmendcraft.config.InventoryMendingMode;
@@ -9,19 +13,13 @@ import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-
 public class SmartMendingConfigScreen extends Screen {
 
     private final Screen parent;
 
     public SmartMendingConfigScreen(Screen parent) {
         super(
-                Text.translatable(
+                Component.translatable(
                         "screen.smartmendcraft.title"
                 )
         );
@@ -34,14 +32,14 @@ public class SmartMendingConfigScreen extends Screen {
      */
     private PlayerMendingConfig getConfig() {
 
-        if (this.client == null
-                || this.client.player == null) {
+        if (this.minecraft == null
+                || this.minecraft.player == null) {
 
             return null;
         }
 
         return PlayerMendingConfigs.get(
-                this.client.player
+                this.minecraft.player
         );
     }
 
@@ -66,11 +64,11 @@ public class SmartMendingConfigScreen extends Screen {
      * Devuelve las líneas ya ajustadas al ancho
      * disponible en la columna derecha.
      */
-    private List<OrderedText> getInventoryDescriptionLines(
+    private List<FormattedCharSequence> getInventoryDescriptionLines(
             PlayerMendingConfig config,
             boolean compact) {
 
-        return this.textRenderer.wrapLines(
+        return this.font.split(
                 getInventoryModeDescription(config),
                 getDescriptionMaxWidth(compact)
         );
@@ -187,8 +185,8 @@ public class SmartMendingConfigScreen extends Screen {
             /*
              * Activa/desactiva la categoría.
              */
-            this.addDrawableChild(
-                    ButtonWidget.builder(
+            this.addRenderableWidget(
+                    Button.builder(
                             getTargetText(
                                     target,
                                     config,
@@ -205,7 +203,7 @@ public class SmartMendingConfigScreen extends Screen {
                                 refreshScreen();
                             }
                     )
-                    .dimensions(
+                    .bounds(
                             leftCenterX
                                     - (categoryWidth / 2)
                                     - arrowWidth
@@ -225,9 +223,9 @@ public class SmartMendingConfigScreen extends Screen {
                             + (categoryWidth / 2)
                             - arrowWidth;
 
-            ButtonWidget upButton =
-                    ButtonWidget.builder(
-                            Text.literal("↑"),
+            Button upButton =
+                    Button.builder(
+                            Component.literal("↑"),
                             button -> {
 
                                 config.movePriorityUp(
@@ -238,7 +236,7 @@ public class SmartMendingConfigScreen extends Screen {
                                 refreshScreen();
                             }
                     )
-                    .dimensions(
+                    .bounds(
                             upX,
                             y,
                             arrowWidth,
@@ -249,7 +247,7 @@ public class SmartMendingConfigScreen extends Screen {
             upButton.active =
                     index > 0;
 
-            this.addDrawableChild(
+            this.addRenderableWidget(
                     upButton
             );
 
@@ -259,9 +257,9 @@ public class SmartMendingConfigScreen extends Screen {
             int downX =
                     upX + arrowWidth + 2;
 
-            ButtonWidget downButton =
-                    ButtonWidget.builder(
-                            Text.literal("↓"),
+            Button downButton =
+                    Button.builder(
+                            Component.literal("↓"),
                             button -> {
 
                                 config.movePriorityDown(
@@ -272,7 +270,7 @@ public class SmartMendingConfigScreen extends Screen {
                                 refreshScreen();
                             }
                     )
-                    .dimensions(
+                    .bounds(
                             downX,
                             y,
                             arrowWidth,
@@ -283,7 +281,7 @@ public class SmartMendingConfigScreen extends Screen {
             downButton.active =
                     index < priority.size() - 1;
 
-            this.addDrawableChild(
+            this.addRenderableWidget(
                     downButton
             );
         }
@@ -298,8 +296,8 @@ public class SmartMendingConfigScreen extends Screen {
         int inventoryModeY =
                 startY;
 
-        this.addDrawableChild(
-                ButtonWidget.builder(
+        this.addRenderableWidget(
+                Button.builder(
                         getInventoryModeText(
                                 config,
                                 compact
@@ -314,7 +312,7 @@ public class SmartMendingConfigScreen extends Screen {
                             refreshScreen();
                         }
                 )
-                .dimensions(
+                .bounds(
                         rightCenterX
                                 - (rightButtonWidth / 2),
                         inventoryModeY,
@@ -337,8 +335,8 @@ public class SmartMendingConfigScreen extends Screen {
                         compact
                 );
 
-        this.addDrawableChild(
-                ButtonWidget.builder(
+        this.addRenderableWidget(
+                Button.builder(
                         getHudEnabledText(
                                 compact
                         ),
@@ -353,7 +351,7 @@ public class SmartMendingConfigScreen extends Screen {
                             refreshScreen();
                         }
                 )
-                .dimensions(
+                .bounds(
                         rightCenterX
                                 - (rightButtonWidth / 2),
                         hudStartY,
@@ -363,8 +361,8 @@ public class SmartMendingConfigScreen extends Screen {
                 .build()
         );
 
-        this.addDrawableChild(
-                ButtonWidget.builder(
+        this.addRenderableWidget(
+                Button.builder(
                         getHudPositionText(
                                 compact
                         ),
@@ -376,7 +374,7 @@ public class SmartMendingConfigScreen extends Screen {
                             refreshScreen();
                         }
                 )
-                .dimensions(
+                .bounds(
                         rightCenterX
                                 - (rightButtonWidth / 2),
                         hudStartY + 24,
@@ -406,14 +404,14 @@ public class SmartMendingConfigScreen extends Screen {
                         rightBottom
                 ) + (compact ? 10 : 18);
 
-        this.addDrawableChild(
-                ButtonWidget.builder(
-                        Text.translatable(
+        this.addRenderableWidget(
+                Button.builder(
+                        Component.translatable(
                                 "screen.smartmendcraft.done"
                         ),
-                        button -> close()
+                        button -> onClose()
                 )
-                .dimensions(
+                .bounds(
                         centerX - 50,
                         doneY,
                         100,
@@ -463,7 +461,7 @@ public class SmartMendingConfigScreen extends Screen {
         }
     }
 
-    private Text getTargetText(
+    private Component getTargetText(
             MendingTarget target,
             PlayerMendingConfig config,
             boolean compact) {
@@ -472,7 +470,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case MAIN_HAND:
 
-                return Text.translatable(
+                return Component.translatable(
                         compact
                                 ? "screen.smartmendcraft.main_hand_short"
                                 : "screen.smartmendcraft.main_hand",
@@ -483,7 +481,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case OFF_HAND:
 
-                return Text.translatable(
+                return Component.translatable(
                         compact
                                 ? "screen.smartmendcraft.off_hand_short"
                                 : "screen.smartmendcraft.off_hand",
@@ -494,7 +492,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case ARMOR:
 
-                return Text.translatable(
+                return Component.translatable(
                         "screen.smartmendcraft.armor",
                         getOnOff(
                                 config.isRepairArmor()
@@ -503,7 +501,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             case INVENTORY:
 
-                return Text.translatable(
+                return Component.translatable(
                         compact
                                 ? "screen.smartmendcraft.inventory_short"
                                 : "screen.smartmendcraft.inventory",
@@ -514,7 +512,7 @@ public class SmartMendingConfigScreen extends Screen {
 
             default:
 
-                return Text.literal(
+                return Component.literal(
                         target.name()
                 );
         }
@@ -546,47 +544,47 @@ public class SmartMendingConfigScreen extends Screen {
         }
     }
 
-    private Text getInventoryModeText(
+    private Component getInventoryModeText(
             PlayerMendingConfig config,
             boolean compact) {
 
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return Text.translatable(
+            return Component.translatable(
                     compact
                             ? "screen.smartmendcraft.mode.balance_short"
                             : "screen.smartmendcraft.mode.balance"
             );
         }
 
-        return Text.translatable(
+        return Component.translatable(
                 compact
                         ? "screen.smartmendcraft.mode.finish_short"
                         : "screen.smartmendcraft.mode.finish"
         );
     }
 
-    private Text getInventoryModeDescription(
+    private Component getInventoryModeDescription(
             PlayerMendingConfig config) {
 
         if (config.getInventoryMode()
                 == InventoryMendingMode.BALANCE) {
 
-            return Text.translatable(
+            return Component.translatable(
                     "screen.smartmendcraft.mode.balance_description"
             );
         }
 
-        return Text.translatable(
+        return Component.translatable(
                 "screen.smartmendcraft.mode.finish_description"
         );
     }
 
-    private Text getHudEnabledText(
+    private Component getHudEnabledText(
             boolean compact) {
 
-        return Text.translatable(
+        return Component.translatable(
                 compact
                         ? "screen.smartmendcraft.hud_short"
                         : "screen.smartmendcraft.hud",
@@ -597,14 +595,14 @@ public class SmartMendingConfigScreen extends Screen {
         );
     }
 
-    private Text getHudPositionText(
+    private Component getHudPositionText(
             boolean compact) {
 
         HudPosition position =
                 SmartMendingClientConfig
                         .getHudPosition();
 
-        return Text.translatable(
+        return Component.translatable(
                 compact
                         ? "screen.smartmendcraft.position_short"
                         : "screen.smartmendcraft.position",
@@ -619,7 +617,7 @@ public class SmartMendingConfigScreen extends Screen {
      * Devuelve el nombre traducido de la posición
      * del HUD.
      */
-    private Text getHudPositionName(
+    private Component getHudPositionName(
             HudPosition position,
             boolean compact) {
 
@@ -660,7 +658,7 @@ public class SmartMendingConfigScreen extends Screen {
             key += "_short";
         }
 
-        return Text.translatable(
+        return Component.translatable(
                 key
         );
     }
@@ -682,9 +680,9 @@ public class SmartMendingConfigScreen extends Screen {
      */
     private void refreshScreen() {
 
-        if (this.client != null) {
+        if (this.minecraft != null) {
 
-            this.client.setScreen(
+            this.minecraft.setScreenAndShow(
                     new SmartMendingConfigScreen(
                             parent
                     )
@@ -693,14 +691,22 @@ public class SmartMendingConfigScreen extends Screen {
     }
 
     @Override
-    public void render(
-            DrawContext context,
-            int mouseX,
-            int mouseY,
-            float delta) {
+        public void extractRenderState(
+                GuiGraphicsExtractor context,
+                int mouseX,
+                int mouseY,
+                float delta) {
 
-        this.renderBackground(
-                context
+        /*
+        * Extract the base screen and widgets first.
+        * Our custom text is added afterwards so it
+        * remains visible above the screen background.
+        */
+        super.extractRenderState(
+                context,
+                mouseX,
+                mouseY,
+                delta
         );
 
         boolean compact =
@@ -722,112 +728,99 @@ public class SmartMendingConfigScreen extends Screen {
                 compact ? 60 : 72;
 
         /*
-         * Título principal.
-         */
-        context.drawCenteredTextWithShadow(
-                this.textRenderer,
+        * Main title.
+        */
+        context.centeredText(
+                this.font,
                 this.title,
                 centerX,
                 compact ? 10 : 20,
-                0xFFFFFF
+                0xFFFFFFFF
         );
 
         /*
-         * Columna izquierda.
-         */
-        context.drawCenteredTextWithShadow(
-                this.textRenderer,
-                Text.translatable(
+        * Left column.
+        */
+        context.centeredText(
+                this.font,
+                Component.translatable(
                         "screen.smartmendcraft.repair_priority"
                 ),
                 leftCenterX,
                 startY - 20,
-                0xAAAAAA
+                0xFFAAAAAA
         );
 
         /*
-         * Columna derecha.
-         */
+        * Right column.
+        */
         PlayerMendingConfig config =
                 getConfig();
 
         if (config != null) {
 
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer,
-                    Text.translatable(
-                            "screen.smartmendcraft.inventory_mode"
-                    ),
-                    rightCenterX,
-                    startY - 20,
-                    0xAAAAAA
-            );
+                context.centeredText(
+                        this.font,
+                        Component.translatable(
+                                "screen.smartmendcraft.inventory_mode"
+                        ),
+                        rightCenterX,
+                        startY - 20,
+                        0xFFAAAAAA
+                );
 
-            /*
-             * Descripción del modo de inventario.
-             *
-             * Se divide automáticamente en varias líneas
-             * para evitar que invada la columna izquierda.
-             */
-            List<OrderedText> descriptionLines =
-                    getInventoryDescriptionLines(
-                            config,
-                            compact
-                    );
+                /*
+                * Inventory mode description.
+                */
+                List<FormattedCharSequence> descriptionLines =
+                        getInventoryDescriptionLines(
+                                config,
+                                compact
+                        );
 
-            int descriptionY =
-                    startY + 25;
+                int descriptionY =
+                        startY + 25;
 
-            for (OrderedText line : descriptionLines) {
+                for (FormattedCharSequence line : descriptionLines) {
 
-                context.drawCenteredTextWithShadow(
-                        this.textRenderer,
+                context.centeredText(
+                        this.font,
                         line,
                         rightCenterX,
                         descriptionY,
-                        0x888888
+                        0xFF888888
                 );
 
                 descriptionY += 10;
-            }
+                }
 
-            /*
-             * Título del HUD.
-             *
-             * Su posición depende ahora del número de líneas
-             * utilizadas por la descripción anterior.
-             */
-            int hudTitleY =
-                    getHudTitleY(
-                            startY,
-                            config,
-                            compact
-                    );
+                /*
+                * HUD title.
+                */
+                int hudTitleY =
+                        getHudTitleY(
+                                startY,
+                                config,
+                                compact
+                        );
 
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer,
-                    Text.translatable(
-                            "screen.smartmendcraft.hud_title"
-                    ),
-                    rightCenterX,
-                    hudTitleY,
-                    0xAAAAAA
-            );
+                context.centeredText(
+                        this.font,
+                        Component.translatable(
+                                "screen.smartmendcraft.hud_title"
+                        ),
+                        rightCenterX,
+                        hudTitleY,
+                        0xFFAAAAAA
+                );
+        }
         }
 
-        super.render(
-                context,
-                mouseX,
-                mouseY,
-                delta
-        );
-    }
-
     @Override
-    public void close() {
+    public void onClose() {
 
-        if (this.client != null) {
-            this.client.setScreen(parent);
+        if (this.minecraft != null) {
+            this.minecraft.setScreenAndShow(parent);
         }
     }
 }

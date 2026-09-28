@@ -3,8 +3,7 @@ package com.radig.smartmendcraft.network;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public final class SmartMendingClients {
 
@@ -15,38 +14,38 @@ public final class SmartMendingClients {
     }
 
     public static void register(
-            PlayerEntity player) {
+            Player player) {
 
         if (player == null) {
             return;
         }
 
         CONNECTED_CLIENTS.add(
-                player.getUuid()
+                player.getUUID()
         );
     }
 
     public static void unregister(
-            PlayerEntity player) {
+            Player player) {
 
         if (player == null) {
             return;
         }
 
         CONNECTED_CLIENTS.remove(
-                player.getUuid()
+                player.getUUID()
         );
     }
 
     public static boolean hasSmartMendCraft(
-            PlayerEntity player) {
+            Player player) {
 
         if (player == null) {
             return false;
         }
 
         return CONNECTED_CLIENTS.contains(
-                player.getUuid()
+                player.getUUID()
         );
     }
 }

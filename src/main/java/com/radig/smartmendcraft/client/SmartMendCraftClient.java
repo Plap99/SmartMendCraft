@@ -1,8 +1,10 @@
 package com.radig.smartmendcraft.client;
+import com.radig.smartmendcraft.SmartMendCraft;
 
 import java.util.List;
 
 import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import com.radig.smartmendcraft.client.config.HudPosition;
 import com.radig.smartmendcraft.client.config.SmartMendingClientConfig;
@@ -12,23 +14,31 @@ import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 import com.radig.smartmendcraft.network.SmartMendingNetworking;
 
+import com.radig.smartmendcraft.network.payload.ConfigSyncPayload;
+import com.radig.smartmendcraft.network.payload.MendingUpdatePayload;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
+import org.joml.Matrix3x2fStack;
+
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 
 public class SmartMendCraftClient implements ClientModInitializer {
 
-    private static KeyBinding openConfigKey;
+    private static KeyMapping openConfigKey;
+
+        private static final KeyMapping.Category SMART_MEND_CRAFT_CATEGORY =
+                KeyMapping.Category.register(
+                        SmartMendCraft.id("controls")
+                );
 
     @Override
     public void onInitializeClient() {
@@ -58,98 +68,52 @@ public class SmartMendCraftClient implements ClientModInitializer {
          * TECLA F7
          * -------------------------------------------------
          */
-        openConfigKey = KeyBindingHelper.registerKeyBinding(
-                new KeyBinding(
+        openConfigKey = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping(
                         "key.smartmendcraft.open_config",
-                        InputUtil.Type.KEYSYM,
+                        InputConstants.Type.KEYSYM,
                         GLFW.GLFW_KEY_F7,
-                        "category.smartmendcraft"
+                        SMART_MEND_CRAFT_CATEGORY
                 )
         );
 
         /*
-         * -------------------------------------------------
-         * ACTUALIZACION DEL HUD DESDE EL SERVIDOR
-         * -------------------------------------------------
-         */
+        * -------------------------------------------------
+        * ACTUALIZACION DEL HUD DESDE EL SERVIDOR
+        * -------------------------------------------------
+        */
         ClientPlayNetworking.registerGlobalReceiver(
-                SmartMendingNetworking.MENDING_UPDATE,
-                (client, handler, buffer, responseSender) -> {
+                MendingUpdatePayload.TYPE,
+                (payload, context) -> {
 
-                    ItemStack stack =
-                            buffer.readItemStack();
-
-                    int repairAmount =
-                            buffer.readInt();
-
-                    int currentDamage =
-                            buffer.readInt();
-
-                    int maxDamage =
-                            buffer.readInt();
-
-                    client.execute(() -> {
+                context.client().execute(() -> {
 
                         SmartMendingHudData.update(
-                                stack,
-                                repairAmount,
-                                currentDamage,
-                                maxDamage
+                                payload.stack(),
+                                payload.repairAmount(),
+                                payload.currentDamage(),
+                                payload.maxDamage()
                         );
-                    });
+                });
                 }
         );
 
         /*
-         * -------------------------------------------------
-         * SINCRONIZACION DE CONFIGURACION PERSONAL
-         * -------------------------------------------------
-         */
+        * -------------------------------------------------
+        * SINCRONIZACION DE CONFIGURACION PERSONAL
+        * -------------------------------------------------
+        */
         ClientPlayNetworking.registerGlobalReceiver(
-                SmartMendingNetworking.CONFIG_SYNC,
-                (client, handler, buffer, responseSender) -> {
+                ConfigSyncPayload.TYPE,
+                (payload, context) -> {
 
-                    boolean repairMainHand =
-                            buffer.readBoolean();
+                context.client().execute(() -> {
 
-                    boolean repairOffHand =
-                            buffer.readBoolean();
-
-                    boolean repairArmor =
-                            buffer.readBoolean();
-
-                    boolean repairInventory =
-                            buffer.readBoolean();
-
-                    int priorityCount =
-                            buffer.readInt();
-
-                    MendingTarget[] priority =
-                            new MendingTarget[priorityCount];
-
-                    for (int i = 0;
-                            i < priorityCount;
-                            i++) {
-
-                        int ordinal =
-                                buffer.readInt();
-
-                        priority[i] =
-                                MendingTarget.values()[ordinal];
-                    }
-
-                    int inventoryModeOrdinal =
-                            buffer.readInt();
-
-                    InventoryMendingMode inventoryMode =
-                            InventoryMendingMode.values()[
-                                    inventoryModeOrdinal
-                            ];
-
-                    client.execute(() -> {
+                        Minecraft client =
+                                context.client();
 
                         if (client.player == null) {
-                            return;
+                        return;
                         }
 
                         PlayerMendingConfig config =
@@ -158,29 +122,29 @@ public class SmartMendCraftClient implements ClientModInitializer {
                                 );
 
                         config.setRepairMainHand(
-                                repairMainHand
+                                payload.repairMainHand()
                         );
 
                         config.setRepairOffHand(
-                                repairOffHand
+                                payload.repairOffHand()
                         );
 
                         config.setRepairArmor(
-                                repairArmor
+                                payload.repairArmor()
                         );
 
                         config.setRepairInventory(
-                                repairInventory
+                                payload.repairInventory()
                         );
 
                         config.setInventoryMode(
-                                inventoryMode
+                                payload.inventoryMode()
                         );
 
                         config.setPriority(
-                                List.of(priority)
+                                List.copyOf(payload.priority())
                         );
-                    });
+                });
                 }
         );
 
@@ -189,7 +153,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
          * HUD DE REPARACION
          * -------------------------------------------------
          */
-        HudRenderCallback.EVENT.register(
+        HudElementRegistry.addLast(
+                SmartMendCraft.id("mending_hud"),
                 (drawContext, tickDelta) -> {
 
                     if (!SmartMendingClientConfig.isShowHud()) {
@@ -200,10 +165,10 @@ public class SmartMendCraftClient implements ClientModInitializer {
                         return;
                     }
 
-                    MinecraftClient client =
-                            MinecraftClient.getInstance();
+                    Minecraft client =
+                            Minecraft.getInstance();
 
-                    if (client.textRenderer == null) {
+                    if (client.font == null) {
                         return;
                     }
 
@@ -250,12 +215,12 @@ public class SmartMendCraftClient implements ClientModInitializer {
                     final int barHeight = 2;
 
                     int textWidth =
-                            client.textRenderer
-                                    .getWidth(text);
+                            client.font
+                                    .width(text);
 
                     int textHeight =
-                            client.textRenderer
-                                    .fontHeight;
+                            client.font
+                                    .lineHeight;
 
                     int hudWidth =
                             iconSize
@@ -347,11 +312,11 @@ public class SmartMendCraftClient implements ClientModInitializer {
                      */
                     int screenWidth =
                             client.getWindow()
-                                    .getScaledWidth();
+                                    .getGuiScaledWidth();
 
                     int screenHeight =
                             client.getWindow()
-                                    .getScaledHeight();
+                                    .getGuiScaledHeight();
 
                     final int sideMargin = 10;
                     final int topMargin = 10;
@@ -443,22 +408,20 @@ public class SmartMendCraftClient implements ClientModInitializer {
                      * Asi x=0, y=0 representa la esquina
                      * superior izquierda del HUD.
                      */
-                    MatrixStack matrixStack =
-                            drawContext.getMatrices();
+                    Matrix3x2fStack matrixStack =
+                                drawContext.pose();
 
-                    matrixStack.push();
+                        matrixStack.pushMatrix();
 
-                    matrixStack.translate(
-                            screenX,
-                            screenY,
-                            0
-                    );
+                        matrixStack.translate(
+                                screenX,
+                                screenY
+                        );
 
-                    matrixStack.scale(
-                            scale,
-                            scale,
-                            1.0F
-                    );
+                        matrixStack.scale(
+                                scale,
+                                scale
+                        );
 
                     /*
                      * -------------------------------------------------
@@ -575,7 +538,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
                      * DrawContext 1.20.1 se encarga internamente
                      * del modelo, iluminacion y transformacion GUI.
                      */
-                    drawContext.drawItem(
+                    drawContext.item(
                             stack,
                             0,
                             0
@@ -594,8 +557,8 @@ public class SmartMendCraftClient implements ClientModInitializer {
                             (alpha << 24)
                                     | 0x00FFFFFF;
 
-                    drawContext.drawTextWithShadow(
-                            client.textRenderer,
+                    drawContext.text(
+                            client.font,
                             text,
                             iconSize + spacing,
                             textY,
@@ -657,7 +620,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
                         );
                     }
 
-                    matrixStack.pop();
+                    matrixStack.popMatrix();
                 }
         );
 
@@ -669,11 +632,11 @@ public class SmartMendCraftClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(
                 client -> {
 
-                    while (openConfigKey.wasPressed()) {
+                    while (openConfigKey.consumeClick()) {
 
-                        if (client.currentScreen == null) {
+                        if (client.gui.screen() == null) {
 
-                            client.setScreen(
+                            client.setScreenAndShow(
                                     new SmartMendingConfigScreen(
                                             null
                                     )
@@ -690,13 +653,13 @@ public class SmartMendCraftClient implements ClientModInitializer {
      * Se utiliza para las ondas visuales
      * de reparacion del HUD.
      */
-    private static void drawWaveRectangle(
-            DrawContext drawContext,
-            int left,
-            int top,
-            int right,
-            int bottom,
-            int color) {
+        private static void drawWaveRectangle(
+                GuiGraphicsExtractor drawContext,
+                int left,
+                int top,
+                int right,
+                int bottom,
+                int color) {
 
         // Arriba
         drawContext.fill(
@@ -733,5 +696,5 @@ public class SmartMendCraftClient implements ClientModInitializer {
                 bottom,
                 color
         );
-    }
+        }
 }

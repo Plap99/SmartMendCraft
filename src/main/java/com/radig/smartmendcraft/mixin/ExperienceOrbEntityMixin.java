@@ -4,46 +4,41 @@ import com.radig.smartmendcraft.network.SmartMendingClients;
 import com.radig.smartmendcraft.repair.MendingRepairEvents;
 import com.radig.smartmendcraft.repair.SmartMendingManager;
 
-import net.minecraft.entity.ExperienceOrbEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ExperienceOrbEntity.class)
+@Mixin(ExperienceOrb.class)
 public abstract class ExperienceOrbEntityMixin {
 
     @Inject(
-        method = "repairPlayerGears",
+        method = "repairPlayerItems",
         at = @At("HEAD"),
         cancellable = true
     )
-    private void smartMendCraft$repairPlayerGears(
-            PlayerEntity player,
+    private void smartMendCraft$repairPlayerItems(
+            ServerPlayer player,
             int experienceAmount,
             CallbackInfoReturnable<Integer> cir) {
 
         /*
-         * Si el jugador NO tiene SmartMendCraft
-         * instalado en su cliente, no hacemos nada.
-         *
-         * Al no establecer un valor de retorno,
-         * el método original de Minecraft continúa
-         * normalmente y usa Mending vanilla.
+         * If the player does not have SmartMendCraft
+         * installed on the client, keep vanilla Mending.
          */
         if (!SmartMendingClients.hasSmartMendCraft(player)) {
             return;
         }
 
         /*
-         * El jugador sí tiene SmartMendCraft.
-         *
-         * Ejecutamos nuestro sistema de reparación
-         * inteligente y sustituimos el comportamiento
-         * vanilla.
+         * The player has SmartMendCraft.
+         * Replace vanilla item selection with our
+         * configurable priority system.
          */
         int remainingExperience =
                 smartMendCraft$repairItems(
@@ -57,11 +52,12 @@ public abstract class ExperienceOrbEntityMixin {
     }
 
     /**
-     * Repara los objetos siguiendo la prioridad definida
-     * por SmartMendingManager.
+     * Repairs items using the priority selected by
+     * SmartMendingManager while preserving the current
+     * Minecraft Mending repair calculation.
      */
     private int smartMendCraft$repairItems(
-            PlayerEntity player,
+            ServerPlayer player,
             int experienceAmount) {
 
         while (experienceAmount > 0) {
@@ -76,20 +72,34 @@ public abstract class ExperienceOrbEntityMixin {
             }
 
             int damage =
-                    stack.getDamage();
+                    stack.getDamageValue();
+
+            if (damage <= 0) {
+                break;
+            }
 
             /*
-             * Mending:
-             * 1 XP puede reparar hasta 2 puntos
-             * de durabilidad.
+             * Ask Minecraft 26.2 how much durability
+             * this amount of XP can repair.
              */
+            int possibleRepair =
+                    EnchantmentHelper.modifyDurabilityToRepairFromXp(
+                            player.level(),
+                            stack,
+                            experienceAmount
+                    );
+
             int repairAmount =
                     Math.min(
-                            experienceAmount * 2,
+                            possibleRepair,
                             damage
                     );
 
-            stack.setDamage(
+            if (repairAmount <= 0) {
+                break;
+            }
+
+            stack.setDamageValue(
                     damage - repairAmount
             );
 
@@ -100,20 +110,21 @@ public abstract class ExperienceOrbEntityMixin {
             );
 
             /*
-             * Calculamos cuánta XP consumió
-             * la reparación.
-             *
-             * Redondeamos hacia arriba:
-             *
-             * 1-2 durabilidad = 1 XP
-             * 3-4 durabilidad = 2 XP
-             * etc.
+             * Vanilla 26.2 calculates the remaining XP
+             * proportionally from the actual repair amount.
              */
-            int experienceUsed =
-                    (repairAmount + 1) / 2;
+            int remainingExperience =
+                    experienceAmount
+                            - repairAmount
+                            * experienceAmount
+                            / possibleRepair;
 
-            experienceAmount -=
-                    experienceUsed;
+            if (remainingExperience <= 0) {
+                return 0;
+            }
+
+            experienceAmount =
+                    remainingExperience;
         }
 
         return experienceAmount;

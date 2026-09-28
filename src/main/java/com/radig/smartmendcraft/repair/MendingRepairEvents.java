@@ -2,9 +2,8 @@ package com.radig.smartmendcraft.repair;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 public final class MendingRepairEvents {
 
@@ -31,7 +30,7 @@ public final class MendingRepairEvents {
      * Notifica que SmartMendCraft acaba de reparar un objeto.
      */
     public static void notifyItemRepaired(
-            PlayerEntity player,
+            Player player,
             ItemStack stack,
             int repairAmount) {
 

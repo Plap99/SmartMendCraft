@@ -3,8 +3,7 @@ package com.radig.smartmendcraft.config;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public final class PlayerMendingConfigs {
 
@@ -20,13 +19,13 @@ public final class PlayerMendingConfigs {
      * Si todavía no existe una configuración para él,
      * se crea automáticamente con los valores predeterminados.
      */
-    public static PlayerMendingConfig get(PlayerEntity player) {
+    public static PlayerMendingConfig get(Player player) {
 
         if (player == null) {
             return new PlayerMendingConfig();
         }
 
-        UUID playerId = player.getUuid();
+        UUID playerId = player.getUUID();
 
         return CONFIGS.computeIfAbsent(
                 playerId,

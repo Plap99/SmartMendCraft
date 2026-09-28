@@ -5,349 +5,246 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.radig.smartmendcraft.SmartMendCraft;
 import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 import com.radig.smartmendcraft.config.PlayerMendingConfigStorage;
+import com.radig.smartmendcraft.network.payload.ClientHelloPayload;
+import com.radig.smartmendcraft.network.payload.ConfigSyncPayload;
+import com.radig.smartmendcraft.network.payload.ConfigUpdatePayload;
+import com.radig.smartmendcraft.network.payload.MendingUpdatePayload;
 
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 public final class SmartMendingNetworking {
-
-    public static final Identifier MENDING_UPDATE =
-            SmartMendCraft.id("mending_update");
-
-    public static final Identifier CONFIG_UPDATE =
-            SmartMendCraft.id("config_update");
-
-    public static final Identifier CONFIG_SYNC =
-            SmartMendCraft.id("config_sync");
-
-    /*
-     * El cliente envía este paquete al entrar para indicar
-     * que tiene SmartMendCraft instalado.
-     */
-    public static final Identifier CLIENT_HELLO =
-            SmartMendCraft.id("client_hello");
 
     private SmartMendingNetworking() {
     }
 
-    public static void sendMendingUpdate(
-            ServerPlayerEntity player,
-            ItemStack stack,
-            int repairAmount) {
+    public static void registerPayloads() {
 
-        if (player == null
-                || stack == null
-                || stack.isEmpty()
-                || repairAmount <= 0
-                || !SmartMendingClients.hasSmartMendCraft(player)) {
+        PayloadTypeRegistry.serverboundPlay().register(
+                ClientHelloPayload.TYPE,
+                ClientHelloPayload.CODEC
+        );
 
-            return;
-        }
+        PayloadTypeRegistry.serverboundPlay().register(
+                ConfigUpdatePayload.TYPE,
+                ConfigUpdatePayload.CODEC
+        );
 
-        PacketByteBuf buffer =
-                PacketByteBufs.create();
+        PayloadTypeRegistry.clientboundPlay().register(
+                ConfigSyncPayload.TYPE,
+                ConfigSyncPayload.CODEC
+        );
 
-        /*
-         * Enviamos una copia del objeto para que el cliente
-         * pueda renderizar exactamente su icono.
-         */
-        buffer.writeItemStack(stack);
-
-        /*
-         * Cantidad reparada en este evento.
-         */
-        buffer.writeInt(repairAmount);
-
-        /*
-         * Daño actual después de la reparación.
-         */
-        buffer.writeInt(stack.getDamage());
-
-        /*
-         * Durabilidad máxima.
-         */
-        buffer.writeInt(stack.getMaxDamage());
-
-        ServerPlayNetworking.send(
-                player,
-                MENDING_UPDATE,
-                buffer
+        PayloadTypeRegistry.clientboundPlay().register(
+                MendingUpdatePayload.TYPE,
+                MendingUpdatePayload.CODEC
         );
     }
 
     public static void registerServerReceivers() {
 
-        /*
-         * -------------------------------------------------
-         * HANDSHAKE DEL CLIENTE
-         * -------------------------------------------------
-         *
-         * Si recibimos este paquete sabemos que ese jugador
-         * tiene SmartMendCraft instalado en su cliente.
-         */
         ServerPlayNetworking.registerGlobalReceiver(
-                CLIENT_HELLO,
-                (server, player, handler, buffer, responseSender) -> {
+                ClientHelloPayload.TYPE,
+                (payload, context) -> {
 
-                    server.execute(() -> {
+                    ServerPlayer player =
+                            context.player();
 
-                        SmartMendingClients.register(
-                                player
-                        );
+                    SmartMendingClients.register(player);
 
-                        PlayerMendingConfig config =
-                                PlayerMendingConfigs.get(
-                                        player
-                                );
+                    PlayerMendingConfig config =
+                            PlayerMendingConfigs.get(player);
 
-                        sendConfigSync(
-                                player,
-                                config
-                        );
-                    });
+                    sendConfigSync(
+                            player,
+                            config
+                    );
                 }
         );
 
-        /*
-         * -------------------------------------------------
-         * ACTUALIZACIÓN DE CONFIGURACIÓN
-         * -------------------------------------------------
-         */
         ServerPlayNetworking.registerGlobalReceiver(
-                CONFIG_UPDATE,
-                (server, player, handler, buffer, responseSender) -> {
+                ConfigUpdatePayload.TYPE,
+                (payload, context) -> {
 
-                    /*
-                     * Un jugador sin SmartMendCraft registrado
-                     * no debería estar enviando este paquete.
-                     */
-                    if (!SmartMendingClients
-                            .hasSmartMendCraft(player)) {
+                ServerPlayer player =
+                        context.player();
 
+                if (!SmartMendingClients.hasSmartMendCraft(player)) {
                         return;
-                    }
+                }
 
-                    boolean repairMainHand =
-                            buffer.readBoolean();
+                List<Integer> priorityOrdinals =
+                        payload.priorityOrdinals();
 
-                    boolean repairOffHand =
-                            buffer.readBoolean();
-
-                    boolean repairArmor =
-                            buffer.readBoolean();
-
-                    boolean repairInventory =
-                            buffer.readBoolean();
-
-                    int priorityCount =
-                            buffer.readInt();
-
-                    /*
-                     * Tenemos exactamente cuatro categorías.
-                     * Cualquier otra cantidad se considera
-                     * un paquete inválido.
-                     */
-                    if (priorityCount !=
-                            MendingTarget.values().length) {
-
-                        SmartMendCraft.LOGGER.warn(
-                                "Configuración inválida recibida de {}: "
-                                        + "priorityCount={}",
-                                player.getName().getString(),
-                                priorityCount
-                        );
-
+                if (priorityOrdinals.size()
+                        != MendingTarget.values().length) {
                         return;
-                    }
+                }
 
-                    List<MendingTarget> priority =
-                            new ArrayList<>();
+                List<MendingTarget> priority =
+                        new ArrayList<>();
 
-                    Set<MendingTarget> usedTargets =
-                            new HashSet<>();
+                Set<MendingTarget> seen =
+                        new HashSet<>();
 
-                    for (int i = 0;
-                            i < priorityCount;
-                            i++) {
+                for (int ordinal : priorityOrdinals) {
 
-                        int ordinal =
-                                buffer.readInt();
-
-                        /*
-                         * Evita ArrayIndexOutOfBoundsException
-                         * si un cliente modificado manda un
-                         * ordinal inexistente.
-                         */
                         if (ordinal < 0
-                                || ordinal >=
-                                MendingTarget.values().length) {
-
-                            SmartMendCraft.LOGGER.warn(
-                                    "Configuración inválida recibida de {}: "
-                                            + "ordinal={}",
-                                    player.getName().getString(),
-                                    ordinal
-                            );
-
-                            return;
+                                || ordinal >= MendingTarget.values().length) {
+                        return;
                         }
 
                         MendingTarget target =
-                                MendingTarget.values()[
-                                        ordinal
-                                ];
+                                MendingTarget.values()[ordinal];
 
-                        /*
-                         * Tampoco permitimos categorías
-                         * repetidas en la prioridad.
-                         */
-                        if (!usedTargets.add(target)) {
-
-                            SmartMendCraft.LOGGER.warn(
-                                    "Configuración inválida recibida de {}: "
-                                            + "categoría duplicada {}",
-                                    player.getName().getString(),
-                                    target
-                            );
-
-                            return;
+                        if (!seen.add(target)) {
+                        return;
                         }
 
                         priority.add(target);
-                    }
+                }
 
-                    int inventoryModeOrdinal =
-                            buffer.readInt();
+                int inventoryModeOrdinal =
+                        payload.inventoryModeOrdinal();
 
-                    if (inventoryModeOrdinal < 0
-                            || inventoryModeOrdinal >=
-                            InventoryMendingMode.values().length) {
-
-                        SmartMendCraft.LOGGER.warn(
-                                "Configuración inválida recibida de {}: "
-                                        + "inventoryMode={}",
-                                player.getName().getString(),
-                                inventoryModeOrdinal
-                        );
-
+                if (inventoryModeOrdinal < 0
+                        || inventoryModeOrdinal
+                        >= InventoryMendingMode.values().length) {
                         return;
-                    }
+                }
 
-                    InventoryMendingMode inventoryMode =
-                            InventoryMendingMode.values()[
-                                    inventoryModeOrdinal
-                            ];
+                InventoryMendingMode inventoryMode =
+                        InventoryMendingMode.values()[
+                                inventoryModeOrdinal
+                        ];
 
-                    /*
-                     * La modificación real de los datos
-                     * del jugador se hace en el hilo
-                     * principal del servidor.
-                     */
-                    server.execute(() -> {
+                PlayerMendingConfig config =
+                        PlayerMendingConfigs.get(player);
 
-                        PlayerMendingConfig config =
-                                PlayerMendingConfigs.get(
-                                        player
-                                );
+                config.setRepairMainHand(
+                        payload.repairMainHand()
+                );
 
-                        config.setRepairMainHand(
-                                repairMainHand
-                        );
+                config.setRepairOffHand(
+                        payload.repairOffHand()
+                );
 
-                        config.setRepairOffHand(
-                                repairOffHand
-                        );
+                config.setRepairArmor(
+                        payload.repairArmor()
+                );
 
-                        config.setRepairArmor(
-                                repairArmor
-                        );
+                config.setRepairInventory(
+                        payload.repairInventory()
+                );
 
-                        config.setRepairInventory(
-                                repairInventory
-                        );
+                config.setPriority(
+                        List.copyOf(priority)
+                );
 
-                        config.setInventoryMode(
-                                inventoryMode
-                        );
+                config.setInventoryMode(
+                        inventoryMode
+                );
 
-                        config.setPriority(
-                                priority
-                        );
-
-                        PlayerMendingConfigStorage.save(
-                                player.getUuid(),
-                                config
-                        );
-                    });
+                PlayerMendingConfigStorage.save(
+                        player.getUUID(),
+                        config
+                );
                 }
         );
     }
 
-    public static void sendConfigSync(
-            ServerPlayerEntity player,
-            PlayerMendingConfig config) {
+    public static void sendMendingUpdate(
+            ServerPlayer player,
+            ItemStack stack,
+            int repairAmount) {
 
-        if (player == null
-                || config == null
-                || !SmartMendingClients
-                .hasSmartMendCraft(player)) {
-
+        if (player == null) {
             return;
         }
 
-        PacketByteBuf buffer =
-                PacketByteBufs.create();
-
-        buffer.writeBoolean(
-                config.isRepairMainHand()
-        );
-
-        buffer.writeBoolean(
-                config.isRepairOffHand()
-        );
-
-        buffer.writeBoolean(
-                config.isRepairArmor()
-        );
-
-        buffer.writeBoolean(
-                config.isRepairInventory()
-        );
-
-        List<MendingTarget> priority =
-                config.getPriority();
-
-        buffer.writeInt(
-                priority.size()
-        );
-
-        for (MendingTarget target : priority) {
-
-            buffer.writeInt(
-                    target.ordinal()
-            );
+        if (stack == null || stack.isEmpty()) {
+            return;
         }
 
-        buffer.writeInt(
-                config.getInventoryMode()
-                        .ordinal()
-        );
+        if (repairAmount <= 0) {
+            return;
+        }
+
+        if (!SmartMendingClients.hasSmartMendCraft(player)) {
+            return;
+        }
+
+        MendingUpdatePayload payload =
+                new MendingUpdatePayload(
+                        stack,
+                        repairAmount
+                );
 
         ServerPlayNetworking.send(
                 player,
-                CONFIG_SYNC,
-                buffer
+                payload
         );
+    }
+
+    public static void sendConfigSync(
+            ServerPlayer player,
+            PlayerMendingConfig config) {
+
+        if (player == null || config == null) {
+            return;
+        }
+
+        if (!SmartMendingClients.hasSmartMendCraft(player)) {
+            return;
+        }
+
+        ConfigSyncPayload payload =
+                ConfigSyncPayload.fromConfig(
+                        config
+                );
+
+        ServerPlayNetworking.send(
+                player,
+                payload
+        );
+    }
+
+    private static boolean isValidPriority(
+            List<MendingTarget> priority) {
+
+        if (priority == null) {
+            return false;
+        }
+
+        MendingTarget[] targets =
+                MendingTarget.values();
+
+        if (priority.size() != targets.length) {
+            return false;
+        }
+
+        Set<MendingTarget> found =
+                new HashSet<>();
+
+        for (MendingTarget target : priority) {
+
+            if (target == null) {
+                return false;
+            }
+
+            if (!found.add(target)) {
+                return false;
+            }
+        }
+
+        return found.size() == targets.length;
     }
 }
