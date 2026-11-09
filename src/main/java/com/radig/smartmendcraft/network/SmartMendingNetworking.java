@@ -10,7 +10,9 @@ import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 import com.radig.smartmendcraft.config.PlayerMendingConfigStorage;
+import com.radig.smartmendcraft.hotbar.HotbarPreferences;
 import com.radig.smartmendcraft.network.payload.ClientHelloPayload;
+import com.radig.smartmendcraft.network.payload.HotbarPreferencesPayload;
 import com.radig.smartmendcraft.network.payload.ConfigSyncPayload;
 import com.radig.smartmendcraft.network.payload.ConfigUpdatePayload;
 import com.radig.smartmendcraft.network.payload.MendingUpdatePayload;
@@ -27,6 +29,13 @@ public final class SmartMendingNetworking {
     }
 
     public static void registerPayloads() {
+
+        PayloadTypeRegistry.serverboundPlay().register(
+                HotbarPreferencesPayload.TYPE, HotbarPreferencesPayload.CODEC
+        );
+        PayloadTypeRegistry.clientboundPlay().register(
+                HotbarPreferencesPayload.TYPE, HotbarPreferencesPayload.CODEC
+        );
 
         PayloadTypeRegistry.serverboundPlay().register(
                 ClientHelloPayload.TYPE,
@@ -51,6 +60,22 @@ public final class SmartMendingNetworking {
 
     public static void registerServerReceivers() {
 
+        ServerPlayNetworking.registerGlobalReceiver(HotbarPreferencesPayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
+            if (!SmartMendingClients.hasSmartMendCraft(player)
+                    || !payload.rules().stream().allMatch(HotbarPreferences::isValidRule)) {
+                return;
+            }
+
+            PlayerMendingConfig config = PlayerMendingConfigs.get(player);
+            HotbarPreferences preferences = new HotbarPreferences(payload.enabled(), payload.rules());
+            if (!preferences.equals(config.getHotbar())) {
+                config.setHotbar(preferences);
+                PlayerMendingConfigStorage.save(player.getUUID(), config);
+            }
+            sendHotbarPreferences(player, config);
+        });
+
         ServerPlayNetworking.registerGlobalReceiver(
                 ClientHelloPayload.TYPE,
                 (payload, context) -> {
@@ -67,6 +92,7 @@ public final class SmartMendingNetworking {
                             player,
                             config
                     );
+                    sendHotbarPreferences(player, config);
                 }
         );
 
@@ -159,6 +185,12 @@ public final class SmartMendingNetworking {
                 );
                 }
         );
+    }
+
+    private static void sendHotbarPreferences(ServerPlayer player, PlayerMendingConfig config) {
+        if (ServerPlayNetworking.canSend(player, HotbarPreferencesPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new HotbarPreferencesPayload(config.getHotbar()));
+        }
     }
 
     public static void sendMendingUpdate(

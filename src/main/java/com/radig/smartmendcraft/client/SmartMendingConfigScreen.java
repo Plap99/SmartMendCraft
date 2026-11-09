@@ -13,6 +13,7 @@ import com.radig.smartmendcraft.config.InventoryMendingMode;
 import com.radig.smartmendcraft.config.MendingTarget;
 import com.radig.smartmendcraft.config.PlayerMendingConfig;
 import com.radig.smartmendcraft.config.PlayerMendingConfigs;
+import com.radig.smartmendcraft.hotbar.HotbarPreferences;
 
 public class SmartMendingConfigScreen extends Screen {
 
@@ -480,6 +481,19 @@ public class SmartMendingConfigScreen extends Screen {
                         rightBottom
                 ) + (compact ? 10 : 18);
 
+        boolean supportsHotbar = SmartMendingClientNetworking.getHotbarPreferences() != null;
+        if (supportsHotbar) {
+            this.addRenderableWidget(Button.builder(
+                    Component.translatable("screen.smartmendcraft.hotbar.title"),
+                    button -> {
+                        HotbarPreferences hotbar = SmartMendingClientNetworking.getHotbarPreferences();
+                        if (hotbar != null) {
+                            this.minecraft.setScreenAndShow(new HotbarConfigScreen(this, hotbar));
+                        }
+                    }
+            ).bounds(centerX + 4, doneY, 100, 20).build());
+        }
+
         this.addRenderableWidget(
                 Button.builder(
                         Component.translatable(
@@ -488,7 +502,7 @@ public class SmartMendingConfigScreen extends Screen {
                         button -> onClose()
                 )
                 .bounds(
-                        centerX - 50,
+                        centerX - (supportsHotbar ? 104 : 50),
                         doneY,
                         100,
                         20

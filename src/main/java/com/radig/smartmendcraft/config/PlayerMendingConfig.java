@@ -1,5 +1,7 @@
 package com.radig.smartmendcraft.config;
 
+import com.radig.smartmendcraft.hotbar.HotbarPreferences;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +23,16 @@ public class PlayerMendingConfig {
 
     private InventoryMendingMode inventoryMode =
             InventoryMendingMode.BALANCE;
+
+    private HotbarPreferences hotbar = HotbarPreferences.DEFAULT;
+
+    public HotbarPreferences getHotbar() {
+        return hotbar == null ? HotbarPreferences.DEFAULT : hotbar;
+    }
+
+    public void setHotbar(HotbarPreferences hotbar) {
+        this.hotbar = hotbar;
+    }
 
     public boolean isRepairMainHand() {
         return repairMainHand;

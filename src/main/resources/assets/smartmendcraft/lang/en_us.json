@@ -44,5 +44,21 @@
   "screen.smartmendcraft.position.bottom_left_short": "Bottom left",
   "screen.smartmendcraft.position.bottom_right_short": "Bottom right",
 
-  "screen.smartmendcraft.done": "Done"
+  "screen.smartmendcraft.done": "Done",
+  "screen.smartmendcraft.hotbar.title": "Smart Hotbar",
+  "screen.smartmendcraft.hotbar.enabled": "Hotbar: On",
+  "screen.smartmendcraft.hotbar.disabled": "Hotbar: Off",
+  "screen.smartmendcraft.hotbar.help": "Select a slot to choose an item or category.",
+  "screen.smartmendcraft.hotbar.slot": "Slot %s",
+  "screen.smartmendcraft.hotbar.save": "Save",
+  "screen.smartmendcraft.hotbar.cancel": "Cancel",
+  "screen.smartmendcraft.hotbar.empty": "Choose…",
+  "screen.smartmendcraft.hotbar.search": "Search by name",
+  "screen.smartmendcraft.hotbar.items": "Items",
+  "screen.smartmendcraft.hotbar.tags": "Categories",
+  "screen.smartmendcraft.hotbar.previous": "Previous page",
+  "screen.smartmendcraft.hotbar.next": "Next page",
+  "screen.smartmendcraft.hotbar.clear": "Clear slot",
+  "screen.smartmendcraft.hotbar.no_results": "No matches",
+  "screen.smartmendcraft.hotbar.picker_title": "%s · %s"
 }

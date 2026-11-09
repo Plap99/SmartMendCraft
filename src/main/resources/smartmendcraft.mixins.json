@@ -3,7 +3,9 @@
     "package": "com.radig.smartmendcraft.mixin",
     "compatibilityLevel": "JAVA_17",
     "mixins": [
-        "ExperienceOrbEntityMixin"
+        "ExperienceOrbEntityMixin",
+        "HotbarPickupMixin",
+        "HotbarChestMixin"
     ],
     "injectors": {
         "defaultRequire": 1

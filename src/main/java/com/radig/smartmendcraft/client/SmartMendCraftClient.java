@@ -46,6 +46,7 @@ public class SmartMendCraftClient implements ClientModInitializer {
          * Configuracion visual local.
          */
         SmartMendingClientConfig.load();
+        SmartMendingClientNetworking.registerHotbarReceiver();
 
         /*
          * -------------------------------------------------
