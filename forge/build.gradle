@@ -46,7 +46,7 @@ dependencies {
     implementation minecraft.dependency("net.minecraftforge:forge:${project.forge_version}")
 }
 
-// Minecraft 26.3 dependencies require Java 25, even though mod bytecode is
+// Minecraft 26.2 dependencies require Java 25, even though mod bytecode is
 // intentionally emitted at Java 17 for the bundled Mixin runtime.
 configurations.compileClasspath.attributes.attribute(
         org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
