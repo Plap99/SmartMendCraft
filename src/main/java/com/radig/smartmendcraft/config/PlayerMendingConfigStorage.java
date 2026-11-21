@@ -12,7 +12,7 @@ import java.nio.file.Path;
 
 import java.util.UUID;
 
-import net.fabricmc.loader.api.FabricLoader;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 public final class PlayerMendingConfigStorage {
 
@@ -22,8 +22,7 @@ public final class PlayerMendingConfigStorage {
                     .create();
 
     private static final Path CONFIG_DIRECTORY =
-            FabricLoader.getInstance()
-                    .getConfigDir()
+            FMLPaths.CONFIGDIR.get()
                     .resolve("smartmendcraft")
                     .resolve("players");
 

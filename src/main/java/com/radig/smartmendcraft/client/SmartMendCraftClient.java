@@ -16,12 +16,10 @@ import com.radig.smartmendcraft.network.SmartMendingNetworking;
 import com.radig.smartmendcraft.network.payload.ConfigSyncPayload;
 import com.radig.smartmendcraft.network.payload.MendingUpdatePayload;
 
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraftforge.client.event.AddGuiOverlayLayersEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.gui.overlay.ForgeLayeredDraw;
+import net.minecraftforge.event.TickEvent;
 
 import org.joml.Matrix3x2fStack;
 
@@ -30,7 +28,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 
-public class SmartMendCraftClient implements ClientModInitializer {
+public final class SmartMendCraftClient {
 
     private static KeyMapping openConfigKey;
 
@@ -39,14 +37,16 @@ public class SmartMendCraftClient implements ClientModInitializer {
                         SmartMendCraft.id("controls")
                 );
 
-    @Override
-    public void onInitializeClient() {
+    private SmartMendCraftClient() {
+    }
+
+    public static void initialize() {
 
         /*
          * Configuracion visual local.
          */
         SmartMendingClientConfig.load();
-        SmartMendingClientNetworking.registerHotbarReceiver();
+        SmartMendingClientNetworking.registerClientEvents();
 
         /*
          * -------------------------------------------------
@@ -56,103 +56,35 @@ public class SmartMendCraftClient implements ClientModInitializer {
          * Al entrar a un servidor/mundo, informamos que
          * este cliente tiene SmartMendCraft instalado.
          */
-        ClientPlayConnectionEvents.JOIN.register(
-                (handler, sender, client) -> {
-                    SmartMendingClientNetworking
-                            .sendClientHello();
-                }
-        );
-
         /*
          * -------------------------------------------------
          * TECLA F7
          * -------------------------------------------------
          */
-        openConfigKey = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping(
-                        "key.smartmendcraft.open_config",
-                        InputConstants.KEY_F7,
-                        SMART_MEND_CRAFT_CATEGORY
-                )
+        openConfigKey = new KeyMapping(
+                "key.smartmendcraft.open_config",
+                InputConstants.KEY_F7,
+                SMART_MEND_CRAFT_CATEGORY
         );
+        RegisterKeyMappingsEvent.BUS.addListener(event -> event.register(openConfigKey));
 
         /*
         * -------------------------------------------------
         * ACTUALIZACION DEL HUD DESDE EL SERVIDOR
         * -------------------------------------------------
         */
-        ClientPlayNetworking.registerGlobalReceiver(
-                MendingUpdatePayload.TYPE,
-                (payload, context) -> {
-
-                context.client().execute(() -> {
-
-                        SmartMendingHudData.update(
-                                payload.stack(),
-                                payload.repairAmount(),
-                                payload.currentDamage(),
-                                payload.maxDamage()
-                        );
-                });
-                }
-        );
-
         /*
         * -------------------------------------------------
         * SINCRONIZACION DE CONFIGURACION PERSONAL
         * -------------------------------------------------
         */
-        ClientPlayNetworking.registerGlobalReceiver(
-                ConfigSyncPayload.TYPE,
-                (payload, context) -> {
-
-                context.client().execute(() -> {
-
-                        Minecraft client =
-                                context.client();
-
-                        if (client.player == null) {
-                        return;
-                        }
-
-                        PlayerMendingConfig config =
-                                PlayerMendingConfigs.get(
-                                        client.player
-                                );
-
-                        config.setRepairMainHand(
-                                payload.repairMainHand()
-                        );
-
-                        config.setRepairOffHand(
-                                payload.repairOffHand()
-                        );
-
-                        config.setRepairArmor(
-                                payload.repairArmor()
-                        );
-
-                        config.setRepairInventory(
-                                payload.repairInventory()
-                        );
-
-                        config.setInventoryMode(
-                                payload.inventoryMode()
-                        );
-
-                        config.setPriority(
-                                List.copyOf(payload.priority())
-                        );
-                });
-                }
-        );
-
         /*
          * -------------------------------------------------
          * HUD DE REPARACION
          * -------------------------------------------------
          */
-        HudElementRegistry.addLast(
+        AddGuiOverlayLayersEvent.BUS.addListener(event -> event.getLayeredDraw().add(
+                ForgeLayeredDraw.PRE_SLEEP_STACK,
                 SmartMendCraft.id("mending_hud"),
                 (drawContext, tickDelta) -> {
 
@@ -622,15 +554,15 @@ public class SmartMendCraftClient implements ClientModInitializer {
 
                     matrixStack.popMatrix();
                 }
-        );
+        ));
 
         /*
          * -------------------------------------------------
          * ABRIR CONFIGURACION CON F7
          * -------------------------------------------------
          */
-        ClientTickEvents.END_CLIENT_TICK.register(
-                client -> {
+        TickEvent.ClientTickEvent.Post.BUS.addListener(event -> {
+                    Minecraft client = Minecraft.getInstance();
 
                     while (openConfigKey.consumeClick()) {
 
@@ -643,8 +575,31 @@ public class SmartMendCraftClient implements ClientModInitializer {
                             );
                         }
                     }
-                }
+                });
+    }
+
+    public static void handleMendingUpdate(MendingUpdatePayload payload) {
+        SmartMendingHudData.update(
+                payload.stack(),
+                payload.repairAmount(),
+                payload.currentDamage(),
+                payload.maxDamage()
         );
+    }
+
+    public static void handleConfigSync(ConfigSyncPayload payload) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null) {
+            return;
+        }
+
+        PlayerMendingConfig config = PlayerMendingConfigs.get(client.player);
+        config.setRepairMainHand(payload.repairMainHand());
+        config.setRepairOffHand(payload.repairOffHand());
+        config.setRepairArmor(payload.repairArmor());
+        config.setRepairInventory(payload.repairInventory());
+        config.setInventoryMode(payload.inventoryMode());
+        config.setPriority(List.copyOf(payload.priority()));
     }
 
     /*

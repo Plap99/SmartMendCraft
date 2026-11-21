@@ -1,98 +1,61 @@
 package com.radig.smartmendcraft;
 
-import net.fabricmc.api.ModInitializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.radig.smartmendcraft.network.SmartMendingNetworking;
+import com.radig.smartmendcraft.config.PlayerMendingConfig;
+import com.radig.smartmendcraft.config.PlayerMendingConfigStorage;
+import com.radig.smartmendcraft.config.PlayerMendingConfigs;
 import com.radig.smartmendcraft.network.SmartMendingClients;
+import com.radig.smartmendcraft.network.SmartMendingNetworking;
 import com.radig.smartmendcraft.repair.MendingRepairEvents;
 import com.radig.smartmendcraft.repair.SmartMendingManager;
-import com.radig.smartmendcraft.config.PlayerMendingConfig;
-import com.radig.smartmendcraft.config.PlayerMendingConfigs;
-import com.radig.smartmendcraft.config.PlayerMendingConfigStorage;
 
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
-public class SmartMendCraft implements ModInitializer {
+@Mod(SmartMendCraft.MOD_ID)
+public final class SmartMendCraft {
 
     public static final String MOD_ID = "smartmendcraft";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-    @Override
-    public void onInitialize() {
+    public SmartMendCraft(FMLJavaModLoadingContext context) {
+        SmartMendingNetworking.register();
 
-        SmartMendingNetworking.registerPayloads();
-        SmartMendingNetworking.registerServerReceivers();
+        PlayerEvent.PlayerLoggedInEvent.BUS.addListener(event -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                PlayerMendingConfig config = PlayerMendingConfigStorage.load(player.getUUID());
+                PlayerMendingConfigs.set(player.getUUID(), config);
+            }
+        });
 
-        /*
-         * Cargamos la configuracion del jugador al entrar.
-         *
-         * No enviamos CONFIG_SYNC aqui.
-         * La sincronizacion ocurre despues de que el cliente
-         * confirme que tiene SmartMendCraft mediante CLIENT_HELLO.
-         */
-        ServerPlayConnectionEvents.JOIN.register(
-                (handler, sender, server) -> {
+        PlayerEvent.PlayerLoggedOutEvent.BUS.addListener(event -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                SmartMendingManager.clearPlayer(player);
+                SmartMendingClients.unregister(player);
+            }
+        });
 
-                    PlayerMendingConfig config =
-                            PlayerMendingConfigStorage.load(
-                                    handler.player.getUUID()
-                            );
+        MendingRepairEvents.register((player, stack, repairAmount) -> {
+            if (player instanceof ServerPlayer serverPlayer) {
+                SmartMendingNetworking.sendMendingUpdate(serverPlayer, stack, repairAmount);
+            }
+        });
 
-                    PlayerMendingConfigs.set(
-                            handler.player.getUUID(),
-                            config
-                    );
-                }
-        );
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            SmartMendCraftClientBootstrap.initialize();
+        }
 
-        /*
-         * Limpieza de datos temporales cuando
-         * un jugador abandona el servidor.
-         */
-        ServerPlayConnectionEvents.DISCONNECT.register(
-                (handler, server) -> {
-
-                    SmartMendingManager.clearPlayer(
-                            handler.player
-                    );
-
-                    SmartMendingClients.unregister(
-                            handler.player
-                    );
-                }
-        );
-
-        /*
-         * Evento que informa al cliente cuando
-         * SmartMendCraft repara un objeto.
-         */
-        MendingRepairEvents.register(
-                (player, stack, repairAmount) -> {
-
-                    if (player instanceof ServerPlayer) {
-
-                        SmartMendingNetworking.sendMendingUpdate(
-                                (ServerPlayer) player,
-                                stack,
-                                repairAmount
-                        );
-                    }
-                }
-        );
-
-        LOGGER.info(
-                "SmartMendCraft iniciado correctamente."
-        );
+        LOGGER.info("SmartMendCraft Forge iniciado correctamente.");
     }
 
     public static Identifier id(String path) {
-        return Identifier.fromNamespaceAndPath(
-                MOD_ID,
-                path
-        );
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 }

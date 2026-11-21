@@ -8,7 +8,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import net.fabricmc.loader.api.FabricLoader;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 public final class SmartMendingClientConfig {
 
@@ -18,8 +18,7 @@ public final class SmartMendingClientConfig {
                     .create();
 
     private static final Path CONFIG_FILE =
-            FabricLoader.getInstance()
-                    .getConfigDir()
+            FMLPaths.CONFIGDIR.get()
                     .resolve("smartmendcraft-client.json");
 
     private static final float DEFAULT_HUD_SCALE =

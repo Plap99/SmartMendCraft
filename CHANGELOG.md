@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — Fabric 26.3
+## 1.1.0 — Forge 26.3
 
 - Added Smart Hotbar to the F7 menu with its own on/off switch.
 - Assign an item or category to each hotbar slot using a visual picker with icons, name search, and a clear-slot action.

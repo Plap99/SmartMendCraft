@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[66,)"
+license="CC0-1.0"
+
+[[mods]]
+modId="smartmendcraft"
+version="${version}"
+displayName="Smart Mend Craft"
+authors="Radig"
+logoFile="assets/smartmendcraft/icon.png"
+description='''Improves Mending with configurable repair priorities, inventory repair modes, a visual repair HUD, and Smart Hotbar.'''
+
+[[dependencies.smartmendcraft]]
+modId="forge"
+mandatory=true
+versionRange="[66,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.smartmendcraft]]
+modId="minecraft"
+mandatory=true
+versionRange="[26.3,26.4,)"
+ordering="NONE"
+side="BOTH"

@@ -1,66 +1,75 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'maven-publish'
+    id 'java'
+    id 'idea'
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+version = mod_version
+group = 'com.radig.smartmendcraft'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+minecraft {
+    runs {
+        configureEach {
+            workingDir = layout.projectDirectory.dir('run')
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            mods {
+                smartmendcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        register('client')
+
+        register('server') {
+            args '--nogui'
+        }
+    }
 }
 
 repositories {
-	// Add repositories here only when depending on additional mods.
-	// Loom automatically adds the repositories required by Minecraft and Fabric.
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-}
-
-loom {
-	runs {
-		client {
-			programArg "--username"
-			programArg "RadigDev"
-		}
-	}
+    implementation minecraft.dependency("net.minecraftforge:forge:${forge_version}")
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+    def properties = [version: project.version]
+    inputs.properties properties
 
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
+    filesMatching('META-INF/mods.toml') {
+        expand properties
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
-}
-
-java {
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+    options.encoding = 'UTF-8'
+    options.release = 25
 }
 
 jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
+    manifest {
+        attributes([
+                'MixinConfigs': 'smartmendcraft.mixins.json'
+        ])
+    }
 
-	from("LICENSE") {
-		rename { "${it}_$projectName" }
-	}
+    from('LICENSE') {
+        rename { "${it}_${project.name}" }
+    }
 }
 
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			from components.java
-		}
-	}
-
-	repositories {
-	}
+java {
+    withSourcesJar()
 }
