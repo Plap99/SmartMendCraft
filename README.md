@@ -1,25 +1,37 @@
-# Smart Mend Craft — Forge
+# Smart Mend Craft
 
-Smart Mend Craft improves the Mending enchantment with configurable repair priorities, inventory repair modes, a visual repair HUD, and Smart Hotbar.
+Smart Mend Craft improves Mending with configurable repair priorities, inventory repair modes, a visual repair HUD, and Smart Hotbar.
 
-## Version
+## Structure
+
+- `common/`: shared gameplay, UI, networking payloads, mixins, and assets.
+- `fabric/`: Fabric entrypoints, networking adapter, metadata, and Gradle project.
+- `forge/`: Forge entrypoints, networking adapter, metadata, and Gradle project.
+
+Both loader builds compile from the shared `common/` source so gameplay changes stay aligned.
+
+## Compatibility
 
 - Minecraft 26.3
-- Minecraft Forge 66.1.8+
 - Java 25+
+- Fabric Loader 0.19.5+ with Fabric API 0.160.5+26.3
+- Forge 66.1.8+
 - Mod version 1.1.0
 
-For multiplayer, install the mod on both the client and the server.
+For multiplayer, install the matching loader build on both the client and server.
 
-## Development
+## Build and run
 
-Build the mod with:
+From the repository root on Windows:
 
 ```powershell
-./gradlew.bat build
+.\gradlew.bat :fabric:build
+.\gradlew.bat :forge:build
+.\gradlew.bat :fabric:runClient
+.\gradlew.bat :forge:runClient
 ```
 
-The Forge development client and server can be started with `runClient` and `runServer` Gradle tasks.
+The JARs are generated separately in `fabric/build/libs/` and `forge/build/libs/`.
 
 ## License
 

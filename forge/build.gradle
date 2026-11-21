@@ -1,0 +1,75 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+base {
+    archivesName = 'smartmendcraft-forge'
+}
+
+sourceSets.main.java.srcDir(rootProject.file('common/src/main/java'))
+sourceSets.main.resources.srcDir(rootProject.file('common/src/main/resources'))
+sourceSets.main.resources.srcDir 'src/generated/resources'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+minecraft {
+    runs {
+        configureEach {
+            workingDir = layout.projectDirectory.dir('run')
+            args '--mixin.config=smartmendcraft.mixins.json'
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            mods {
+                smartmendcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        register('client')
+
+        register('server') {
+            args '--nogui'
+        }
+    }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${project.forge_version}")
+}
+
+// Minecraft 26.3 dependencies require Java 25, even though mod bytecode is
+// intentionally emitted at Java 17 for the bundled Mixin runtime.
+configurations.compileClasspath.attributes.attribute(
+        org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+configurations.runtimeClasspath.attributes.attribute(
+        org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+
+processResources {
+    def properties = [version: project.version]
+    inputs.properties properties
+    filesMatching('META-INF/mods.toml') {
+        expand properties
+    }
+}
+
+jar {
+    manifest {
+        attributes(['MixinConfigs': 'smartmendcraft.mixins.json'])
+    }
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_smartmendcraft-forge" }
+    }
+}
+
+java {
+    withSourcesJar()
+}

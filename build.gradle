@@ -1,75 +1,17 @@
 plugins {
-    id 'java'
-    id 'idea'
-    id 'eclipse'
-    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+    id 'base'
 }
 
-version = mod_version
-group = 'com.radig.smartmendcraft'
+allprojects {
+    group = 'com.radig.smartmendcraft'
+    version = providers.gradleProperty('mod_version').get()
+}
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
-
-sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-minecraft {
-    runs {
-        configureEach {
-            workingDir = layout.projectDirectory.dir('run')
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            systemProperty 'forge.logging.console.level', 'debug'
-            mods {
-                smartmendcraft {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        register('client')
-
-        register('server') {
-            args '--nogui'
-        }
+subprojects {
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        // Keep mod and mixin bytecode at the highest level supported by the
+        // Mixin runtime bundled with Forge. Minecraft itself still runs on Java 25.
+        options.release = 17
     }
-}
-
-repositories {
-    minecraft.mavenizer(it)
-    maven fg.forgeMaven
-    maven fg.minecraftLibsMaven
-    mavenCentral()
-}
-
-dependencies {
-    implementation minecraft.dependency("net.minecraftforge:forge:${forge_version}")
-}
-
-processResources {
-    def properties = [version: project.version]
-    inputs.properties properties
-
-    filesMatching('META-INF/mods.toml') {
-        expand properties
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-    options.release = 25
-}
-
-jar {
-    manifest {
-        attributes([
-                'MixinConfigs': 'smartmendcraft.mixins.json'
-        ])
-    }
-
-    from('LICENSE') {
-        rename { "${it}_${project.name}" }
-    }
-}
-
-java {
-    withSourcesJar()
 }
